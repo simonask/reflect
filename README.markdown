@@ -44,7 +44,8 @@ In foo.hpp:
     class Foo : public Object {
         REFLECT;
     public:
-        Foo() {}
+        Foo() : an_integer_property(123) {}
+        void add_number(float32 n) { a_list_of_floats.push_back(n); }
         void say_hi() { std::cout << "Hi!\n"; }
     private:
         int32                an_integer_property;
@@ -72,6 +73,7 @@ In main.cpp:
         for (auto attribute: foo_type->attribute()) {
             std::cout << attribute->name() << ": " << attribute->type()->name() << '\n';
         }
+        std::cout << '\n';
 
         // Create a composite type consisting of two Foos.
         CompositeType* composite = new CompositeType("FooFoo");
@@ -79,10 +81,34 @@ In main.cpp:
         composite->add_aspect(get_type<Foo>());
         Object* c = create(composite);
         Foo* f = aspect_cast<Foo>(c); // get a pointer to the first Foo in c.
+        f->add_number(7);
         f->say_hi();
         
         // Serialize the composite as JSON, and write to stdout.
         JSONArchive archive;
         composite->serialize((byte*)c, archive.root());
         archive.write(std::cout);
+    }
+
+Output:
+
+    Foo
+    Number: int32
+    Float list: float32[]
+
+    { "root": {
+	      "aspects": [
+	        {
+		        "class": "Foo",
+		        "Float list": [7],
+		        "Number": 123
+	        },
+	        {
+	          "class": "Foo",
+	          "Float list": null,
+	          "Number": 123
+	        }
+	      ],
+ 	      "class": "FooFoo"
+	    }
     }
