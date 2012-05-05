@@ -3,6 +3,6 @@
 
 std::string build_variable_length_array_type_name(std::string base_name, const Type* element_type) {
 	std::stringstream ss;
-	ss << base_name << '<' << element_type->name() << '>';
+	ss << element_type->name() << "[]";
 	return ss.str();
 }
