@@ -23,6 +23,7 @@ Planned/pending features
 * Built-in support for serialization of more standard library types.
 * Type-safe public serialization API.
 * Central type registry for enumeration of all types.
+* Deserialization (!).
 
 Limitations
 -----------
@@ -30,6 +31,7 @@ Limitations
 * Objects must derive from the `Object` type and include the `REFLECT` tag in their definition.
 * Rich casting (`aspect_cast`) requires runtime type information.
 * Members of objects that aren't described by a `property(member, name, description)` will not be serialized/deserialized.
+* Class reflection/serialization with properties does not currently support multiple inheritance with non-interface (non-abstract) base classes. Use composite objects if needed. A class can derived from multiple base classes, but only one of them may derive from `Object`.
 
 Examples
 ========
