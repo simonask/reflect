@@ -53,7 +53,7 @@ END_TYPE_INFO()
 template <typename T>
 typename std::enable_if<std::is_convertible<T*, Object*>::value, T*>::type
 create() {
-	auto type = static_cast<const StructTypeImpl<T>*>(get_type<T>());
+	auto type = static_cast<const StructType<T>*>(get_type<T>());
 	byte* memory = new byte[sizeof(T)];
 	type->construct(memory);
 	T* object = reinterpret_cast<T*>(memory);

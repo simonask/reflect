@@ -38,15 +38,11 @@ struct StructTypeBuilder {
 	
 	virtual void define__() = 0;
 	
-	const StructType<T>* build__() {
+	StructType<T> build__() {
 		define__();
-		StructType<T>* type;
-		if (is_abstract_) {
-			type = new AbstractStructTypeImpl<T>(super_, name_, description_);
-		} else {
-			type = new StructTypeImpl<T>(super_, name_, description_);
-		}
-		type->set_properties(std::move(attributes_));
+		StructType<T> type(super_, std::move(name_), std::move(description_));
+		type.set_abstract(is_abstract_);
+		type.set_properties(std::move(attributes_));
 		return type;
 	}
 	
@@ -61,13 +57,14 @@ struct StructTypeBuilder {
 
 #define BEGIN_TYPE_INFO(TYPE) \
 const StructTypeBase* TYPE::build_type_info__() { \
-	struct StructTypeBuilderImpl__ : StructTypeBuilder<TYPE> { \
+	static struct StructTypeBuilderImpl__ : StructTypeBuilder<TYPE> { \
 		void define__() override { name(#TYPE);
 			
 #define END_TYPE_INFO() \
 		} \
 	} builder__; \
-	return builder__.build__(); \
+	static const auto t = builder__.build__(); \
+	return &t; \
 }
 
 #endif /* end of include guard: REFLECT_HPP_WJBCX95G */

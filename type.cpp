@@ -4,9 +4,11 @@
 
 #define DEFINE_SIMPLE_TYPE(T, IS_FLOAT, IS_SIGNED) template <> const Type* build_type_info<T>() { \
 	if (IS_FLOAT) { \
-		return new FloatType(#T, sizeof(T)); \
+		static const FloatType type(#T, sizeof(T)); \
+		return &type; \
 	} else { \
-		return new IntegerType(#T, sizeof(T), IS_SIGNED); \
+		static const IntegerType type(#T, sizeof(T), IS_SIGNED); \
+		return &type; \
 	} \
 }
 
@@ -197,11 +199,8 @@ void* FloatType::cast(const SimpleType* to, void* memory) const {
 const std::string VoidType::Name = "void";
 
 const VoidType* VoidType::get() {
-	VoidType* p = nullptr;
-	if (p == nullptr) {
-		p = new VoidType;
-	}
-	return p;
+	static const VoidType p;
+	return &p;
 }
 
 template <> const Type* build_type_info<void>() {

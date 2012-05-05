@@ -24,6 +24,8 @@ protected:
 
 template <typename T>
 struct StructType : StructTypeBase {
+	StructType(const StructTypeBase* super, std::string name, std::string description) : StructTypeBase(super, std::move(name), std::move(description)), is_abstract_(false) {}
+	
 	void construct(byte* place) const override {
 		T* p = ::new(place) T;
 		p->set_object_type__(this);
@@ -50,20 +52,12 @@ struct StructType : StructTypeBase {
 	
 	void deserialize(byte* object, const ArchiveNode&) const override;
 	void serialize(const byte* object, ArchiveNode&) const override;
+	
+	void set_abstract(bool b) { is_abstract_ = b; }
+	bool is_abstract() const override { return is_abstract_; }
 protected:
-	StructType(const StructTypeBase* super, std::string name, std::string description) : StructTypeBase(super, std::move(name), std::move(description)) {}
 	std::vector<AttributeForObject<T>*> properties_;
-};
-
-template <typename T>
-struct AbstractStructTypeImpl : StructType<T> {
-	AbstractStructTypeImpl(const StructTypeBase* super, std::string name, std::string description) : StructType<T>(super, std::move(name), std::move(description)) {}
-	bool is_abstract() const { return true; }
-};
-
-template <typename T>
-struct StructTypeImpl : StructType<T> {
-	StructTypeImpl(const StructTypeBase* super, std::string name, std::string description) : StructType<T>(super, std::move(name), std::move(description)) {}
+	bool is_abstract_;
 };
 
 

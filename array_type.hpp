@@ -54,8 +54,8 @@ public:
 template <typename T>
 struct BuildTypeInfo<std::vector<T>> {
 	static const ArrayType* build() {
-		auto t = new VariableLengthArrayType<std::vector<T>>("std::vector");
-		return t;
+		static const VariableLengthArrayType<std::vector<T>> type("std::vector");
+		return &type;
 	}
 };
 
