@@ -7,8 +7,9 @@
 #include <new>
 
 struct CompositeType : DerivedType {
-	CompositeType(std::string name) : name_(std::move(name)), frozen_(false), size_(sizeof(Object)) {}
+	CompositeType(std::string name, const StructTypeBase* base_type = nullptr) : base_type_(base_type), name_(std::move(name)), frozen_(false), size_(sizeof(Object)) {}
 	
+	const StructTypeBase* base_type() const;
 	void add_aspect(const DerivedType* aspect);
 	void freeze() { frozen_ = true; }
 	
@@ -30,6 +31,7 @@ struct CompositeType : DerivedType {
 	Object* find_instance_up(const DerivedType* of_type, Object* o) const;
 	Object* find_self_up(Object* o) const;
 private:
+	const StructTypeBase* base_type_;
 	std::string name_;
 	std::vector<const DerivedType*> aspects_;
 	bool frozen_;
