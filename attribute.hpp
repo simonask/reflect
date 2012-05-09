@@ -34,15 +34,36 @@ struct AttributeForObject {
 	virtual bool serialize_attribute(const T* object, ArchiveNode&) const = 0;
 };
 
+template <typename ObjectType, typename MemberType, typename GetterType = MemberType>
+struct AttributeForObjectOfType : AttributeForObject<ObjectType>, Attribute<MemberType> {
+	AttributeForObjectOfType(std::string name, std::string description) : Attribute<MemberType>(name, description) {}
+	
+	virtual GetterType get(const ObjectType&) const = 0;
+	virtual void set(ObjectType&, MemberType value) const = 0;
+	
+	const Type* attribute_type() const { return get_type<MemberType>(); }
+	const std::string& attribute_name() const { return this->name_; }
+	const std::string& attribute_description() const { return this->description_; }
+	
+	bool deserialize_attribute(ObjectType* object, const ArchiveNode& node) const {
+		MemberType value;
+		this->type()->deserialize(reinterpret_cast<byte*>(&value), node);
+		set(*object, std::move(value));
+		return true; // eh...
+	}
+	
+	bool serialize_attribute(const ObjectType* object, ArchiveNode& node) const {
+		GetterType value = get(*object);
+		this->type()->serialize(reinterpret_cast<const byte*>(&value), node);
+		return true; // eh...
+	}
+};
+
 template <typename ObjectType, typename MemberType>
-struct MemberAttribute : AttributeForObject<ObjectType>, Attribute<MemberType> {
+struct MemberAttribute : AttributeForObjectOfType<ObjectType, MemberType, const MemberType&> {
 	typedef MemberType ObjectType::* MemberPointer;
 	
-	MemberAttribute(std::string name, std::string description, MemberPointer member) : Attribute<MemberType>(name, description), member_(member) {}
-	
-	MemberType& get(ObjectType& object) const {
-		return object.*member_;
-	}
+	MemberAttribute(std::string name, std::string description, MemberPointer member) : AttributeForObjectOfType<ObjectType, MemberType, const MemberType&>(name, description), member_(member) {}
 	
 	const MemberType& get(const ObjectType& object) const {
 		return object.*member_;
@@ -52,23 +73,30 @@ struct MemberAttribute : AttributeForObject<ObjectType>, Attribute<MemberType> {
 		object.*member_ = std::move(value);
 	}
 	
-	const Type* attribute_type() const { return get_type<MemberType>(); }
-	const std::string& attribute_name() const { return this->name_; }
-	const std::string& attribute_description() const { return this->description_; }
-	
-	bool deserialize_attribute(ObjectType* object, const ArchiveNode& node) const {
-		const Type* t = this->type();
-		t->deserialize(reinterpret_cast<byte*>(&(object->*member_)), node);
-		return true; // XXX
-	}
-	
-	bool serialize_attribute(const ObjectType* object, ArchiveNode& node) const {
-		const Type* t = this->type();
-		t->serialize(reinterpret_cast<const byte*>(&(object->*member_)), node);
-		return true; // XXX
-	}
-	
 	MemberPointer member_;
+};
+
+template <typename ObjectType,
+          typename MemberType,
+          typename GetterReturnType,
+          typename SetterArgumentType,
+          typename SetterReturnTypeUnused>
+struct MethodAttribute : AttributeForObjectOfType<ObjectType, MemberType, GetterReturnType> {
+	typedef GetterReturnType(ObjectType::*GetterPointer)() const;
+	typedef SetterReturnTypeUnused(ObjectType::*SetterPointer)(SetterArgumentType);
+	
+	MethodAttribute(std::string name, std::string description, GetterPointer getter, SetterPointer setter) : AttributeForObjectOfType<ObjectType, MemberType, GetterReturnType>(name, description), getter_(getter), setter_(setter) {}
+	
+	GetterReturnType get(const ObjectType& object) const {
+		return (object.*getter_)();
+	}
+	
+ 	void set(ObjectType& object, MemberType value) const {
+		(object.*setter_)(std::move(value));
+	}
+	
+	GetterPointer getter_;
+	SetterPointer setter_;
 };
 
 #endif /* end of include guard: ATTRIBUTE_HPP_FFQKLYB6 */
