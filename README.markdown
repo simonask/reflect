@@ -67,6 +67,9 @@ In foo.cpp:
 In main.cpp:
 
     int f() {
+	      // Create a universe for our objects to live in.
+	      TestUniverse universe;
+	
         // Print the type name and all properties.
         auto foo_type = get_type<Foo>();
         std::cout << foo_type->name() << '\n'; // prints "Foo"
@@ -79,14 +82,14 @@ In main.cpp:
         CompositeType* composite = new CompositeType("FooFoo");
         composite->add_aspect(get_type<Foo>());
         composite->add_aspect(get_type<Foo>());
-        Object* c = create(composite);
+        Object* c = universe.create_object(composite, "My object");
         Foo* f = aspect_cast<Foo>(c); // get a pointer to the first Foo in c.
         f->add_number(7);
         f->say_hi();
         
         // Serialize the composite as JSON, and write to stdout.
         JSONArchive archive;
-        composite->serialize((byte*)c, archive.root());
+        archive.serialize(c, universe);
         archive.write(std::cout);
     }
 
@@ -97,6 +100,7 @@ Output:
     Float list: float32[]
 
     { "root": {
+	      "id": "My object",
 	      "aspects": [
 	        {
 		        "class": "Foo",
