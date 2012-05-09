@@ -11,14 +11,9 @@
 struct JSONArchive;
 
 struct JSONArchiveNode : ArchiveNode {
-	JSONArchiveNode(JSONArchive& archive, ArchiveNode::Type t = ArchiveNode::Empty) : ArchiveNode(t), archive_(archive) {}
+	JSONArchiveNode(JSONArchive& archive, ArchiveNode::Type t = ArchiveNode::Empty);
 	void write(std::ostream& os) const override { write(os, false, 0); }
 	void write(std::ostream& os, bool print_inline, int indent) const;
-protected:
-	ArchiveNode* make(Type t) override;
-	const ArchiveNode& empty() const override;
-private:
-	JSONArchive& archive_;
 };
 
 struct JSONArchive : Archive {
@@ -28,22 +23,17 @@ struct JSONArchive : Archive {
 	void write(std::ostream& os) const override;
 	const ArchiveNode& operator[](const std::string& key) const override;
 	ArchiveNode& operator[](const std::string& key) override;
+	ArchiveNode* make(ArchiveNode::Type t = ArchiveNode::Empty) override { return make_internal(t); }
 	
-	const JSONArchiveNode& empty() const { return *empty_; }
+	const ArchiveNode& empty() const { return *empty_; }
 private:
 	friend struct JSONArchiveNode;
 	JSONArchiveNode* empty_;
 	JSONArchiveNode* root_;
 	std::deque<JSONArchiveNode> nodes_;
-	JSONArchiveNode* make(ArchiveNode::Type = ArchiveNode::Empty);
+	JSONArchiveNode* make_internal(ArchiveNode::Type t = ArchiveNode::Empty);
 };
 
-inline ArchiveNode* JSONArchiveNode::make(Type t) {
-	return archive_.make(t);
-}
-
-inline const ArchiveNode& JSONArchiveNode::empty() const {
-	return archive_.empty();
-}
+inline JSONArchiveNode::JSONArchiveNode(JSONArchive& archive, ArchiveNode::Type t) : ArchiveNode(archive, t) {}
 
 #endif /* end of include guard: JSON_ARCHIVE_HPP_4OX35IUJ */

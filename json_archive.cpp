@@ -1,17 +1,17 @@
 #include "json_archive.hpp"
 
 JSONArchive::JSONArchive() : root_(nullptr) {
-	empty_ = make();
+	empty_ = make_internal();
 }
 
-JSONArchiveNode* JSONArchive::make(ArchiveNode::Type node_type) {
+JSONArchiveNode* JSONArchive::make_internal(ArchiveNode::Type node_type) {
 	nodes_.emplace_back(*this, node_type);
 	return &nodes_.back();
 }
 
 ArchiveNode& JSONArchive::root() {
 	if (root_ == nullptr) {
-		root_ = make(ArchiveNode::Map);
+		root_ = make_internal(ArchiveNode::Map);
 	}
 	return *root_;
 }

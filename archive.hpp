@@ -3,11 +3,17 @@
 #define ARCHIVE_HPP_A0L9H8RE
 
 #include "basic.hpp"
+#include "object.hpp"
+#include "type.hpp"
 
 #include <string>
 #include <vector>
 #include <map>
 #include <ostream>
+
+struct DeserializeReferenceBase;
+struct SerializeReferenceBase;
+struct Archive;
 
 struct ArchiveNode {
 	enum Type {
@@ -63,11 +69,15 @@ struct ArchiveNode {
 	
 	virtual ~ArchiveNode() {}
 	virtual void write(std::ostream& os) const = 0;
+	
+	template <typename T>
+	void register_reference_for_deserialization(T& reference) const;
+	template <typename T>
+	void register_reference_for_serialization(const T& reference);
 protected:
-	explicit ArchiveNode(Type t = Empty) : type_(t) {}
-	virtual ArchiveNode* make(Type t = Empty) = 0;
-	virtual const ArchiveNode& empty() const = 0;
+	explicit ArchiveNode(Archive& archive, Type t = Empty) : archive_(archive), type_(t) {}
 protected:
+	Archive& archive_;
 	Type type_;
 	// TODO: Use an 'any'/'variant' type for the following:
 	std::map<std::string, ArchiveNode*> map_;
@@ -89,6 +99,23 @@ struct Archive {
 	virtual void write(std::ostream& os) const = 0;
 	virtual const ArchiveNode& operator[](const std::string& key) const = 0;
 	virtual ArchiveNode& operator[](const std::string& key) = 0;
+	virtual ArchiveNode* make(ArchiveNode::Type type = ArchiveNode::Empty) = 0;
+	virtual const ArchiveNode& empty() const = 0;
+	
+	void serialize(Object* object) {
+		byte* memory = (byte*)object;
+		get_type(object)->serialize(memory, root());
+		post_serialization();
+		serialize_references.clear();
+	}
+	
+	void register_reference_for_deserialization(DeserializeReferenceBase* ref) { deserialize_references.push_back(ref); }
+	void register_reference_for_serialization(SerializeReferenceBase* ref) { serialize_references.push_back(ref); }
+private:
+	std::vector<DeserializeReferenceBase*> deserialize_references;
+	std::vector<SerializeReferenceBase*> serialize_references;
+	
+	void post_serialization() const;
 };
 
 
@@ -210,7 +237,7 @@ inline void ArchiveNode::clear(ArchiveNode::Type new_type) {
 inline const ArchiveNode& ArchiveNode::operator[](size_t idx) const {
 	assert(type() == Array);
 	if (idx >= array_.size()) {
-		return empty();
+		return archive_.empty();
 	}
 	return *array_[idx];
 }
@@ -223,7 +250,7 @@ inline ArchiveNode& ArchiveNode::operator[](size_t idx) {
 		return *array_[idx];
 	} else {
 		array_.reserve(idx+1);
-		while (array_.size() < idx+1) { array_.push_back(make()); }
+		while (array_.size() < idx+1) { array_.push_back(archive_.make()); }
 		return *array_[idx];
 	}
 }
@@ -232,7 +259,7 @@ inline const ArchiveNode& ArchiveNode::operator[](const std::string& key) const 
 	assert(type() == Map);
 	auto it = map_.find(key);
 	if (it == map_.end()) {
-		return empty();
+		return archive_.empty();
 	} else {
 		return *it->second;
 	}
@@ -244,7 +271,7 @@ inline ArchiveNode& ArchiveNode::operator[](const std::string& key) {
 	}
 	auto it = map_.find(key);
 	if (it == map_.end()) {
-		ArchiveNode* n = make();
+		ArchiveNode* n = archive_.make();
 		map_[key] = n;
 		return *n;
 	} else {
@@ -256,9 +283,75 @@ inline ArchiveNode& ArchiveNode::array_push() {
 	if (type() != Array) {
 		clear(Array);
 	}
-	ArchiveNode* n = make();
+	ArchiveNode* n = archive_.make();
 	array_.push_back(n);
 	return *n;
+}
+
+struct Universe;
+
+struct DeserializeReferenceBase {
+	virtual ~DeserializeReferenceBase() {}
+	DeserializeReferenceBase(std::string object_id) : object_id_(object_id) {}
+	virtual void perform(Universe&) = 0;
+protected:
+	Object* get_object(const Universe&) { return nullptr; /* TODO*/ }
+	std::string object_id_;
+};
+
+template <typename T>
+struct DeserializeReference : DeserializeReferenceBase {
+public:
+	typedef typename T::PointeeType PointeeType;
+	
+	DeserializeReference(std::string object_id, T& reference) : DeserializeReferenceBase(object_id), reference_(reference) {}
+	void perform(Universe& universe) {
+		Object* object_ptr = get_object(universe);
+		if (object_ptr == nullptr) {
+			// TODO: Warn about non-existing object ID.
+		}
+		PointeeType* ptr = aspect_cast<PointeeType>(object_ptr);
+		if (ptr == nullptr) {
+			// TODO: Warn about type mismatch.
+		}
+		reference_ = ptr;
+	}
+private:
+	T& reference_;
+};
+
+template <typename T>
+void ArchiveNode::register_reference_for_deserialization(T& reference) const {
+	std::string id;
+	if (get(id)) {
+		archive_.register_reference_for_deserialization(new DeserializeReference<T>(id, reference));
+	}
+}
+
+struct SerializeReferenceBase {
+	virtual ~SerializeReferenceBase() {}
+	SerializeReferenceBase(ArchiveNode& node) : node_(node) {}
+	virtual void perform(Universe&) = 0;
+protected:
+	std::string get_unique_id(Universe&, Object* object);
+	ArchiveNode& node_;
+};
+
+template <typename T>
+struct SerializeReference : SerializeReferenceBase {
+	typedef typename T::PointeeType PointeeType;
+	
+	SerializeReference(ArchiveNode& node, const T& reference) : SerializeReferenceBase(node), reference_(reference) {}
+	void perform(Universe& universe) {
+		node_.set(get_unique_id(universe, reference_.get()));
+	}
+private:
+	const T& reference_;
+};
+
+template <typename T>
+void ArchiveNode::register_reference_for_serialization(const T& reference) {
+	archive_.register_reference_for_serialization(new SerializeReference<T>(*this, reference));
 }
 
 #endif /* end of include guard: ARCHIVE_HPP_A0L9H8RE */

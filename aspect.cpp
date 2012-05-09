@@ -4,6 +4,7 @@
 #include <map>
 
 #include "object.hpp"
+#include "objectptr.hpp"
 #include "reflect.hpp"
 #include "type.hpp"
 #include "composite_type.hpp"
@@ -35,7 +36,8 @@ struct Bar : Object {
 	
 	int bar;
 	std::vector<int> list;
-	Bar() : bar(456) {}
+	ObjectPtr<Foo> foo;
+	Bar() : bar(456), foo(nullptr) {}
 	~Bar() {
 		std::cout << "~Bar" << '\n';
 	}
@@ -47,6 +49,7 @@ BEGIN_TYPE_INFO(Bar)
 	description("Bar is a class.");
 	property(&Bar::bar, "bar", "Another number");
 	property(&Bar::list, "list", "A list of numbers");
+	property(&Bar::foo, "foo", "A reference to a foo");
 END_TYPE_INFO()
 
 
@@ -121,6 +124,7 @@ int main (int argc, char const *argv[])
 	
 	Foo* foo = aspect_cast<Foo>(p.get());
 	Bar* bar = aspect_cast<Bar>(p.get());
+	bar->foo = foo;
 	
 	bar->when_something_happens.connect(foo, &Foo::a_signal_receiver);
 	bar->when_something_happens(bar->bar);
@@ -144,7 +148,7 @@ int main (int argc, char const *argv[])
 	}
 	
 	JSONArchive json;
-	t->serialize(reinterpret_cast<const byte*>(p.get()), json.root());
+	json.serialize(p.get());
 	json.write(std::cout);
 	
 	return 0;
