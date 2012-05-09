@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <unistd.h>
 #include <memory>
+#include <type_traits>
 
 typedef signed char int8;
 typedef short int16;
@@ -34,5 +35,15 @@ struct HasMember {
 public:
 	static const bool Value = (sizeof(f<T>(0)) == sizeof(MatchedReturnType)); 
 };
+
+template <typename T>
+struct RemoveConstRef {
+	typedef typename std::remove_const<typename std::remove_reference<T>::type>::type Type;
+};
+
+template <typename T>
+void destruct(T* ptr) {
+	ptr->~T();
+}
 
 #endif /* end of include guard: BASIC_HPP_S0NRU03V */

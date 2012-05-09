@@ -30,8 +30,8 @@ struct ReferenceTypeImpl : ReferenceType {
 	size_t size() const { return sizeof(T); }
 	void deserialize(byte* place, const ArchiveNode& node) const;
 	void serialize(const byte* place, ArchiveNode& node) const;
-	void construct(byte* place) const;
-	void destruct(byte* place) const;
+	void construct(byte* place, IUniverse&) const;
+	void destruct(byte* place, IUniverse&) const;
 };
 
 template <typename T>
@@ -47,12 +47,12 @@ void ReferenceTypeImpl<T>::serialize(const byte* place, ArchiveNode& node) const
 }
 
 template <typename T>
-void ReferenceTypeImpl<T>::construct(byte* place) const {
+void ReferenceTypeImpl<T>::construct(byte* place, IUniverse&) const {
 	new(place) T;
 }
 
 template <typename T>
-void ReferenceTypeImpl<T>::destruct(byte* place) const {
+void ReferenceTypeImpl<T>::destruct(byte* place, IUniverse&) const {
 	reinterpret_cast<T*>(place)->~T();
 }
 

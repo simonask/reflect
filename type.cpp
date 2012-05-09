@@ -206,3 +206,24 @@ const VoidType* VoidType::get() {
 template <> const Type* build_type_info<void>() {
 	return VoidType::get();
 }
+
+
+void StringType::deserialize(byte* place, const ArchiveNode& node) const {
+	std::string* str = reinterpret_cast<std::string*>(place);
+	node.get(*str);
+}
+
+void StringType::serialize(const byte* place, ArchiveNode& node) const {
+	const std::string* str = reinterpret_cast<const std::string*>(place);
+	node.set(*str);
+}
+
+const StringType* StringType::get() {
+	static const StringType type = StringType();
+	return &type;
+}
+
+const std::string& StringType::name() const {
+	static const std::string name = "std::string";
+	return name;
+}

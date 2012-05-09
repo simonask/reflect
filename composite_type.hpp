@@ -13,8 +13,8 @@ struct CompositeType : DerivedType {
 	void freeze() { frozen_ = true; }
 	
 	// Type interface
-	void construct(byte* place) const override;
-	void destruct(byte* place) const override;
+	void construct(byte* place, IUniverse&) const override;
+	void destruct(byte* place, IUniverse&) const override;
 	void deserialize(byte* place, const ArchiveNode& node) const override;
 	void serialize(const byte* place, ArchiveNode& node) const override;
 	const std::string& name() const override { return name_; }

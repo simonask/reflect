@@ -24,6 +24,13 @@ struct StructTypeBuilder {
 		return *this;
 	}
 	
+	template <typename GetterReturnType, typename SetterArgumentType, typename SetterReturnType>
+	Self& property(GetterReturnType (T::*getter)() const, SetterReturnType (T::*setter)(SetterArgumentType), std::string name, std::string description) {
+		typedef typename RemoveConstRef<GetterReturnType>::Type RawType;
+		attributes_.push_back(new MethodAttribute<T, RawType, GetterReturnType, SetterArgumentType, SetterReturnType>(std::move(name), std::move(description), getter, setter));
+		return *this;
+	}
+	
 	template <typename... Args>
 	Self& signal(Signal<Args...> T::* member, std::string name, std::string description) {
 		signals_.push_back(new SignalAttribute<T, Args...>(std::move(name), std::move(description), member));

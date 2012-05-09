@@ -26,11 +26,12 @@ template <typename T>
 struct StructType : StructTypeBase {
 	StructType(const StructTypeBase* super, std::string name, std::string description) : StructTypeBase(super, std::move(name), std::move(description)), is_abstract_(false) {}
 	
-	void construct(byte* place) const override {
+	void construct(byte* place, IUniverse& universe) const override {
 		T* p = ::new(place) T;
 		p->set_object_type__(this);
+		p->set_universe__(&universe);
 	}
-	void destruct(byte* place) const override { reinterpret_cast<T*>(place)->~T(); }
+	void destruct(byte* place, IUniverse&) const override { reinterpret_cast<T*>(place)->~T(); }
 	size_t size() const override { return sizeof(T); }
 	
 	void set_properties(std::vector<AttributeForObject<T>*> properties) {

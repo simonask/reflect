@@ -44,8 +44,8 @@ public:
 	size_t offset_of_element(size_t idx) const override { return idx * element_type_->size(); }
 	size_t size() const override { return sizeof(Container); }
 	
-	void construct(byte* place) const override;
-	void destruct(byte* place) const override;
+	void construct(byte* place, IUniverse&) const override;
+	void destruct(byte* place, IUniverse&) const override;
 	void deserialize(byte* place, const ArchiveNode& node) const override;
 	void serialize(const byte* place, ArchiveNode& node) const override;
 	Object* cast(const DerivedType* to, Object* o) const override { return nullptr; }
@@ -60,12 +60,12 @@ struct BuildTypeInfo<std::vector<T>> {
 };
 
 template <typename T>
-void VariableLengthArrayType<T>::construct(byte* place) const {
+void VariableLengthArrayType<T>::construct(byte* place, IUniverse&) const {
 	new(place) T;
 }
 
 template <typename T>
-void VariableLengthArrayType<T>::destruct(byte* place) const {
+void VariableLengthArrayType<T>::destruct(byte* place, IUniverse&) const {
 	reinterpret_cast<T*>(place)->~T();
 }
 

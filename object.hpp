@@ -4,6 +4,7 @@
 
 #include "basic.hpp"
 
+struct IUniverse;
 struct Type;
 struct DerivedType;
 struct StructTypeBase;
@@ -16,11 +17,17 @@ template <typename T> const Type* build_type_info(); // Only used for non-reflec
 struct Object {
 	REFLECT;
 	
-	Object() : type_(nullptr), offset_(0) {}
+	Object() : type_(nullptr), offset_(0), universe_(nullptr) {}
 	virtual ~Object() {}
 	
 	Object* find_topmost_object();
 	const Object* find_topmost_object() const;
+	
+	IUniverse* universe() const { return universe_; }
+	void set_universe__(IUniverse* universe) { universe_ = universe; }
+	
+	const std::string& object_id() const;
+	bool set_object_id(std::string new_id);
 	
 	const DerivedType* object_type() const { return type_; }
 	void set_object_type__(const DerivedType* t) { type_ = t; }
@@ -32,6 +39,7 @@ protected:
 private:
 	const DerivedType* type_;
 	size_t offset_; // offset within composite
+	IUniverse* universe_;
 };
 
 template <typename T>

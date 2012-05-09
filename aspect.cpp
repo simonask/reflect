@@ -11,6 +11,7 @@
 #include "struct_type.hpp"
 #include "array_type.hpp"
 #include "json_archive.hpp"
+#include "universe.hpp"
 
 struct Foo : Object {
 	REFLECT;
@@ -39,7 +40,7 @@ struct Bar : Object {
 	ObjectPtr<Foo> foo;
 	Bar() : bar(456), foo(nullptr) {}
 	~Bar() {
-		std::cout << "~Bar" << '\n';
+		std::cout << "~Bar " << this << '\n';
 	}
 	
 	Signal<int32> when_something_happens;
@@ -53,78 +54,24 @@ BEGIN_TYPE_INFO(Bar)
 END_TYPE_INFO()
 
 
-template <typename T>
-typename std::enable_if<std::is_convertible<T*, Object*>::value, T*>::type
-create() {
-	auto type = static_cast<const StructType<T>*>(get_type<T>());
-	byte* memory = new byte[sizeof(T)];
-	type->construct(memory);
-	T* object = reinterpret_cast<T*>(memory);
-	object->set_object_type__(type);
-	object->set_object_offset__(0);
-	return object;
-}
-
-Object* create(const DerivedType* type) {
-	byte* memory = new byte[type->size()];
-	type->construct(memory);
-	Object* object = reinterpret_cast<Object*>(memory);
-	object->set_object_type__(type);
-	return object;
-}
-
-template <typename T>
-void destroy_impl(typename std::enable_if<std::is_convertible<T*, Object*>::value, T*>::type ptr) {
-	Object* topmost = ptr->find_topmost_object();
-	topmost->object_type()->destruct(reinterpret_cast<byte*>(topmost));
-	byte* memory = reinterpret_cast<byte*>(topmost);
-	delete[] memory;
-}
-
-template <typename T>
-void destroy_impl(typename std::enable_if<!std::is_convertible<T*, Object*>::value, T*>::type ptr) {
-	delete ptr;
-}
-
-template <typename T>
-void destroy(T* ptr) {
-	destroy_impl<T>(ptr);
-}
-
-template <typename T>
-struct ObjectDestroyer {
-	void operator()(T* ptr) {
-		destroy(ptr);
-	}
-};
-
-template <typename T>
-using UPtr = std::unique_ptr<T, ObjectDestroyer<T>>;
-
-template <typename T>
-UPtr<T> create_unique() {
-	return UPtr<T>(create<T>());
-}
-
-UPtr<Object> create_unique(const DerivedType* type) {
-	return UPtr<Object>(create(type));
-}
-
 int main (int argc, char const *argv[])
 {
+	TestUniverse universe;
+	
 	auto t = new CompositeType("FooBar");
 	t->add_aspect(get_type<Foo>());
 	t->add_aspect(get_type<Bar>());
 	t->freeze();
 	
-	auto p = create_unique(t);
-	auto b = create_unique<Bar>();
-	std::cout << "p: " << p.get() << '\n';
-	std::cout << "b: " << b.get() << '\n';
+	Object* p = universe.create_object(t, "Composite FooBar");
+	Bar* b = universe.create<Bar>("Bar");
+	std::cout << "p: " << p << '\n';
+	std::cout << "b: " << b << '\n';
 	
-	Foo* foo = aspect_cast<Foo>(p.get());
-	Bar* bar = aspect_cast<Bar>(p.get());
+	Foo* foo = aspect_cast<Foo>(p);
+	Bar* bar = aspect_cast<Bar>(p);
 	bar->foo = foo;
+	assert(bar->foo != nullptr);
 	
 	bar->when_something_happens.connect(foo, &Foo::a_signal_receiver);
 	bar->when_something_happens(bar->bar);
@@ -148,7 +95,8 @@ int main (int argc, char const *argv[])
 	}
 	
 	JSONArchive json;
-	json.serialize(p.get());
+	json.serialize(p, universe);
+	assert(bar->foo != nullptr);
 	json.write(std::cout);
 	
 	return 0;

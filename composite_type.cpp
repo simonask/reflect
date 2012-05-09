@@ -69,23 +69,25 @@ Object* CompositeType::find_self_up(Object* object) const {
 }
 
 
-void CompositeType::construct(byte* place) const {
+void CompositeType::construct(byte* place, IUniverse& universe) const {
 	Object* obj = ::new(place) Object;
 	obj->set_object_type__(this);
+	obj->set_universe__(&universe);
 	size_t offset = sizeof(Object);
 	for (auto aspect: aspects_) {
-		aspect->construct(place + offset);
+		aspect->construct(place + offset, universe);
 		Object* subobject = reinterpret_cast<Object*>(place + offset);
 		subobject->set_object_offset__(offset);
+		subobject->set_object_id(aspect->name());
 		offset += aspect->size();
 	}
 }
 
-void CompositeType::destruct(byte* place) const {
+void CompositeType::destruct(byte* place, IUniverse& universe) const {
 	Object* obj = reinterpret_cast<Object*>(place);
 	size_t offset = sizeof(Object);
 	for (auto aspect: aspects_) { // TODO: Consider doing this backwards?
-		aspect->destruct(place + offset);
+		aspect->destruct(place + offset, universe);
 		offset += aspect->size();
 	}
 	obj->~Object();

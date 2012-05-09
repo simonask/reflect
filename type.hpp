@@ -12,12 +12,13 @@
 #include <limits.h>
 
 struct ArchiveNode;
+struct IUniverse;
 
 struct Type {
 	virtual void deserialize(byte* place, const ArchiveNode&) const = 0;
 	virtual void serialize(const byte* place, ArchiveNode&) const = 0;
-	virtual void construct(byte* place) const = 0;
-	virtual void destruct(byte* place) const = 0;
+	virtual void construct(byte* place, IUniverse&) const = 0;
+	virtual void destruct(byte* place, IUniverse&) const = 0;
 	
 	virtual const std::string& name() const = 0;
 	virtual size_t size() const = 0;
@@ -31,8 +32,8 @@ struct VoidType : Type {
 	
 	void deserialize(byte* place, const ArchiveNode&) const override {}
 	void serialize(const byte*, ArchiveNode&) const override {}
-	virtual void construct(byte*) const override {}
-	virtual void destruct(byte*) const override {}
+	virtual void construct(byte*, IUniverse&) const override {}
+	virtual void destruct(byte*, IUniverse&) const override {}
 	static const std::string Name;
 	const std::string& name() const override { return Name; }
 	size_t size() const override { return 0; }
@@ -44,8 +45,8 @@ private:
 struct SimpleType : Type {
 	SimpleType(std::string name, size_t width, size_t component_width, bool is_float, bool is_signed) : name_(std::move(name)), width_(width), component_width_(component_width), is_float_(is_float), is_signed_(is_signed) {}
 	const std::string& name() const override { return name_; }
-	void construct(byte* place) const { std::fill(place, place + size(), 0); }
-	void destruct(byte*) const {}
+	void construct(byte* place, IUniverse&) const { std::fill(place, place + size(), 0); }
+	void destruct(byte*, IUniverse&) const {}
 	
 	size_t size() const override { return width_; }
 	size_t num_components() const { return width_ / component_width_; }
@@ -100,6 +101,18 @@ struct VectorType : SimpleType {
 	void deserialize(byte*, const ArchiveNode&) const override;
 	void serialize(const byte*, ArchiveNode&) const override;
 	void* cast(const SimpleType* to, void* o) const;
+};
+
+struct StringType : Type {
+	static const StringType* get();
+	
+	void deserialize(byte* place, const ArchiveNode&) const override;
+	void serialize(const byte* place, ArchiveNode&) const override;
+	void construct(byte* place, IUniverse&) const override { new(place) std::string; }
+	void destruct(byte* place, IUniverse&) const override { ::destruct(reinterpret_cast<std::string*>(place)); }
+	
+	const std::string& name() const override;
+	size_t size() const override { return sizeof(std::string); }
 };
 
 struct DerivedType : Type {
@@ -176,6 +189,10 @@ template <typename T> struct BuildTypeInfo {};
 
 template <> struct BuildTypeInfo<void> {
 	static const VoidType* build() { return VoidType::get(); }
+};
+
+template <> struct BuildTypeInfo<std::string> {
+	static const StringType* build() { return StringType::get(); }
 };
 
 template <typename T> const Type* build_type_info() {

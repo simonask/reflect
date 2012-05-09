@@ -17,16 +17,19 @@ struct ObjectPtr<T, typename std::enable_if<IsDerivedFromObject<T>::Value>::type
 	ObjectPtr(T* ptr) : ptr_(ptr) {}
 	template <typename U>
 	ObjectPtr(ObjectPtr<U> other) { ptr_ = other.ptr_; }
-	ObjectPtr(const ObjectPtr<T>& other) = default;
-	ObjectPtr(ObjectPtr<T>&& other) = default;
+	ObjectPtr(const ObjectPtr<T>& other) { ptr_ = other.ptr_; }
+	ObjectPtr(ObjectPtr<T>&& other) { ptr_ = other.ptr_; }
 	template <typename U>
 	ObjectPtr<T>& operator=(U* other) { ptr_ = other; return *this; }
 	template <typename U>
 	ObjectPtr<T>& operator=(ObjectPtr<U> other) { ptr_ = other.ptr_; return *this; }
+	ObjectPtr<T>& operator=(const ObjectPtr<T>& other) { ptr_ = other.ptr_; return *this; }
 	template <typename U>
 	bool operator==(ObjectPtr<U> other) const { ptr_ == other.ptr_; }
+	bool operator==(const ObjectPtr<T>& other) const { return ptr_ == other.ptr_; }
 	template <typename U>
 	bool operator!=(ObjectPtr<U> other) const { ptr_ != other.ptr_; }
+	bool operator!=(const ObjectPtr<T>& other) const { return ptr_ != other.ptr_; }
 	
 	template <typename U>
 	ObjectPtr<U> cast() const {

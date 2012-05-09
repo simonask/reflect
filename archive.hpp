@@ -5,6 +5,7 @@
 #include "basic.hpp"
 #include "object.hpp"
 #include "type.hpp"
+#include "universe.hpp"
 
 #include <string>
 #include <vector>
@@ -52,6 +53,7 @@ struct ArchiveNode {
 	void set(uint32);
 	void set(uint64);
 	void set(std::string);
+	void clear() { clear(Empty); }
 	
 	const ArchiveNode& operator[](size_t idx) const;
 	ArchiveNode& operator[](size_t idx);
@@ -88,7 +90,7 @@ protected:
 		float64 float_value;
 	};
 	
-	void clear(ArchiveNode::Type new_node_type = Empty);
+	void clear(ArchiveNode::Type new_node_type);
 	template <typename T, typename U>
 	bool get_value(T& v, Type value_type, const U& value) const;
 };
@@ -102,20 +104,13 @@ struct Archive {
 	virtual ArchiveNode* make(ArchiveNode::Type type = ArchiveNode::Empty) = 0;
 	virtual const ArchiveNode& empty() const = 0;
 	
-	void serialize(Object* object) {
-		byte* memory = (byte*)object;
-		get_type(object)->serialize(memory, root());
-		post_serialization();
-		serialize_references.clear();
-	}
+	void serialize(const Object* object, IUniverse& universe);
 	
 	void register_reference_for_deserialization(DeserializeReferenceBase* ref) { deserialize_references.push_back(ref); }
 	void register_reference_for_serialization(SerializeReferenceBase* ref) { serialize_references.push_back(ref); }
 private:
 	std::vector<DeserializeReferenceBase*> deserialize_references;
 	std::vector<SerializeReferenceBase*> serialize_references;
-	
-	void post_serialization() const;
 };
 
 
@@ -288,14 +283,11 @@ inline ArchiveNode& ArchiveNode::array_push() {
 	return *n;
 }
 
-struct Universe;
-
 struct DeserializeReferenceBase {
 	virtual ~DeserializeReferenceBase() {}
 	DeserializeReferenceBase(std::string object_id) : object_id_(object_id) {}
-	virtual void perform(Universe&) = 0;
+	virtual void perform(IUniverse&) = 0;
 protected:
-	Object* get_object(const Universe&) { return nullptr; /* TODO*/ }
 	std::string object_id_;
 };
 
@@ -305,8 +297,8 @@ public:
 	typedef typename T::PointeeType PointeeType;
 	
 	DeserializeReference(std::string object_id, T& reference) : DeserializeReferenceBase(object_id), reference_(reference) {}
-	void perform(Universe& universe) {
-		Object* object_ptr = get_object(universe);
+	void perform(IUniverse& universe) {
+		Object* object_ptr = universe.get_object(object_id_);
 		if (object_ptr == nullptr) {
 			// TODO: Warn about non-existing object ID.
 		}
@@ -331,9 +323,8 @@ void ArchiveNode::register_reference_for_deserialization(T& reference) const {
 struct SerializeReferenceBase {
 	virtual ~SerializeReferenceBase() {}
 	SerializeReferenceBase(ArchiveNode& node) : node_(node) {}
-	virtual void perform(Universe&) = 0;
+	virtual void perform(const IUniverse&) = 0;
 protected:
-	std::string get_unique_id(Universe&, Object* object);
 	ArchiveNode& node_;
 };
 
@@ -342,8 +333,13 @@ struct SerializeReference : SerializeReferenceBase {
 	typedef typename T::PointeeType PointeeType;
 	
 	SerializeReference(ArchiveNode& node, const T& reference) : SerializeReferenceBase(node), reference_(reference) {}
-	void perform(Universe& universe) {
-		node_.set(get_unique_id(universe, reference_.get()));
+	void perform(const IUniverse& universe) {
+		Object* ptr = reference_.get();
+		if (ptr != nullptr) {
+			node_.set(universe.get_id(ptr));
+		} else {
+			node_.clear();
+		}
 	}
 private:
 	const T& reference_;
@@ -352,6 +348,15 @@ private:
 template <typename T>
 void ArchiveNode::register_reference_for_serialization(const T& reference) {
 	archive_.register_reference_for_serialization(new SerializeReference<T>(*this, reference));
+}
+
+inline void Archive::serialize(const Object* object, IUniverse& universe) {
+	const byte* memory = reinterpret_cast<const byte*>(object);
+	get_type(object)->serialize(memory, root());
+	for (auto ref: serialize_references) {
+		ref->perform(universe);
+	}
+	serialize_references.clear();
 }
 
 #endif /* end of include guard: ARCHIVE_HPP_A0L9H8RE */
