@@ -41,21 +41,6 @@ private:
 	VoidType() {}
 };
 
-struct ReferenceType : Type {
-	static const ReferenceType* get(const Type* pointee);
-	
-	void deserialize(byte* place, const ArchiveNode&) const override;
-	void serialize(const byte*, ArchiveNode&) const override;
-	const std::string& name() const override { return name_; }
-	size_t size() const override { return sizeof(void*); }
-private:
-	ReferenceType(const Type* pointee) : name_(build_reference_type_name(pointee->name())), pointee_(pointee) {}
-	std::string name_;
-	const Type* pointee_;
-	
-	static std::string build_reference_type_name(const std::string& name);
-};
-
 struct SimpleType : Type {
 	SimpleType(std::string name, size_t width, size_t component_width, bool is_float, bool is_signed) : name_(std::move(name)), width_(width), component_width_(component_width), is_float_(is_float), is_signed_(is_signed) {}
 	const std::string& name() const override { return name_; }
@@ -188,6 +173,7 @@ DECLARE_TYPE(float32)
 DECLARE_TYPE(float64)
 
 template <typename T> struct BuildTypeInfo {};
+
 template <> struct BuildTypeInfo<void> {
 	static const VoidType* build() { return VoidType::get(); }
 };

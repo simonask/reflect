@@ -34,6 +34,11 @@ private:
 	size_t offset_; // offset within composite
 };
 
+template <typename T>
+struct IsDerivedFromObject {
+	static const bool Value = std::is_convertible<T*, Object*>::value;
+};
+
 struct CheckHasBuildTypeInfo {
 	template <typename T, const typename T::TypeInfoType*(*)() = T::build_type_info__>
 	struct Check {};
