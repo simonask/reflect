@@ -44,7 +44,7 @@ private:
 
 template <typename T>
 struct IsDerivedFromObject {
-	static const bool Value = std::is_convertible<T*, Object*>::value;
+	static const bool Value = std::is_convertible<typename std::remove_const<T>::type*, Object*>::value;
 };
 
 struct CheckHasBuildTypeInfo {
