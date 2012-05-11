@@ -44,6 +44,8 @@ public:
 	iterator end() { return data_ + size_; }
 	const_iterator begin() const { return data_; }
 	const_iterator end() const { return data_ + size_; }
+	
+	iterator erase(iterator);
 private:
 	T* data_;
 	uint32 size_;
@@ -89,13 +91,13 @@ Array<T>& Array<T>::operator=(Array<T>&& other) {
 
 template <typename T>
 T& Array<T>::operator[](uint32 idx) {
-	assert(idx < size_);
+	ASSERT(idx < size_);
 	return data_[idx];
 }
 
 template <typename T>
 const T& Array<T>::operator[](uint32 idx) const {
-	assert(idx < size_);
+	ASSERT(idx < size_);
 	return data_[idx];
 }
 
@@ -156,6 +158,12 @@ void Array<T>::clear(bool deallocate) {
 		alloc_size_ = 0;
 	}
 }
+
+/*template <typename T>
+Array<T>::iterator Array<T>::erase(Array<T>::iterator it) {
+	ASSERT(it >= begin() && it < end());
+	
+}*/
 
 #endif // if defined(USE_STD_VECTOR)
 

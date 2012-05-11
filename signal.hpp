@@ -177,7 +177,7 @@ struct SlotAttribute : SlotForObject<T>, SlotWithSignature<Args...> {
 template <typename... Args>
 void SignalType<Args...>::deserialize(byte* place, const ArchiveNode& node) const {
 	// XXX TODO!
-	assert(false);
+	ASSERT(false);
 }
 
 template <typename... Args>

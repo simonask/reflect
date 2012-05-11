@@ -31,7 +31,7 @@ void IntegerType::deserialize(byte* place, const ArchiveNode& node) const {
 			case 2: node.get(*reinterpret_cast<int16*>(place)); return;
 			case 4: node.get(*reinterpret_cast<int32*>(place)); return;
 			case 8: node.get(*reinterpret_cast<int64*>(place)); return;
-			default: assert(false); // non-standard integer size
+			default: ASSERT(false); // non-standard integer size
 		}
 	} else {
 		switch (width_) {
@@ -39,7 +39,7 @@ void IntegerType::deserialize(byte* place, const ArchiveNode& node) const {
 			case 2: node.get(*reinterpret_cast<uint16*>(place)); return;
 			case 4: node.get(*reinterpret_cast<uint32*>(place)); return;
 			case 8: node.get(*reinterpret_cast<uint64*>(place)); return;
-			default: assert(false); // non-standard integer size
+			default: ASSERT(false); // non-standard integer size
 		}
 	}
 }
@@ -51,7 +51,7 @@ void IntegerType::serialize(const byte* place, ArchiveNode& node) const {
 			case 2: node.set(*reinterpret_cast<const int16*>(place)); return;
 			case 4: node.set(*reinterpret_cast<const int32*>(place)); return;
 			case 8: node.set(*reinterpret_cast<const int64*>(place)); return;
-			default: assert(false); // non-standard integer size
+			default: ASSERT(false); // non-standard integer size
 		}
 	} else {
 		switch (width_) {
@@ -59,7 +59,7 @@ void IntegerType::serialize(const byte* place, ArchiveNode& node) const {
 			case 2: node.set(*reinterpret_cast<const uint16*>(place)); return;
 			case 4: node.set(*reinterpret_cast<const uint32*>(place)); return;
 			case 8: node.set(*reinterpret_cast<const uint64*>(place)); return;
-			default: assert(false); // non-standard integer size
+			default: ASSERT(false); // non-standard integer size
 		}
 	}
 }
@@ -70,13 +70,13 @@ void* IntegerType::cast(const SimpleType* to, void* memory) const {
 	auto enum_type = dynamic_cast<const EnumType*>(to);
 	if (enum_type != nullptr && enum_type->size() <= width_) {
 		if (is_signed_) {
-			assert(width_ <= sizeof(ssize_t));
+			ASSERT(width_ <= sizeof(ssize_t));
 			ssize_t n = 0;
 			memcpy(&n, memory, width_);
 			if (enum_type->contains(n))
 				return memory;
 		} else {
-			assert(width_ <= sizeof(size_t));
+			ASSERT(width_ <= sizeof(size_t));
 			size_t n = 0;
 			memcpy(&n, memory, width_);
 			if (enum_type->contains(n))
@@ -93,7 +93,7 @@ void FloatType::deserialize(byte* place, const ArchiveNode& node) const {
 	} else if (width_ == 8) {
 		node.get(*reinterpret_cast<float64*>(place));
 	}
-	assert(false); // FloatType with neither 32-bit nor 64-bit floats?
+	ASSERT(false); // FloatType with neither 32-bit nor 64-bit floats?
 }
 
 void FloatType::serialize(const byte* place, ArchiveNode& node) const {
@@ -102,7 +102,7 @@ void FloatType::serialize(const byte* place, ArchiveNode& node) const {
 	} else if (width_ == 8) {
 		node.set(*reinterpret_cast<const float64*>(place));
 	}
-	assert(false); // FloatType with neither 32-bit nor 64-bit floats?
+	ASSERT(false); // FloatType with neither 32-bit nor 64-bit floats?
 }
 
 bool EnumType::contains(ssize_t value) const {
@@ -141,7 +141,7 @@ void EnumType::deserialize(byte* place, const ArchiveNode& node) const {
 	std::string name;
 	if (node.get(name)) {
 		ssize_t value;
-		assert(width_ <= sizeof(ssize_t));
+		ASSERT(width_ <= sizeof(ssize_t));
 		if (value_for_name(name, value)) {
 			memcpy(place, &value, width_);
 			// Success!
@@ -155,7 +155,7 @@ void EnumType::deserialize(byte* place, const ArchiveNode& node) const {
 
 void EnumType::serialize(const byte* place, ArchiveNode& node) const {
 	ssize_t value = 0;
-	assert(width_ <= sizeof(ssize_t));
+	ASSERT(width_ <= sizeof(ssize_t));
 	memcpy(&value, place, width_);
 	std::string name;
 	if (name_for_value(value, name)) {
@@ -173,14 +173,14 @@ void* EnumType::cast(const SimpleType* to, void* memory) const {
 	if (integer_type != nullptr && integer_type->size() <= width_) {
 		if (integer_type->is_signed()) {
 			ssize_t value = 0;
-			assert(integer_type->size() <= sizeof(ssize_t));
+			ASSERT(integer_type->size() <= sizeof(ssize_t));
 			memcpy(&value, memory, integer_type->size());
 			if (contains(value)) {
 				return memory;
 			}
 		} else {
 			size_t value = 0;
-			assert(integer_type->size() <= sizeof(size_t));
+			ASSERT(integer_type->size() <= sizeof(size_t));
 			memcpy(&value, memory, integer_type->size());
 			if (contains(value)) {
 				return memory;

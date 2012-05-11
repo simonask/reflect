@@ -20,7 +20,7 @@ ObjectPtr<> TestUniverse::create_object(const DerivedType* type, std::string id)
 }
 
 bool TestUniverse::rename_object(ObjectPtr<> object, std::string new_id) {
-	assert(object->universe() == this);
+	ASSERT(object->universe() == this);
 	
 	// erase old name from database
 	auto old_it = reverse_object_map_.find(object);

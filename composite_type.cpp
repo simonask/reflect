@@ -2,8 +2,8 @@
 #include "struct_type.hpp"
 
 void CompositeType::add_aspect(const DerivedType* aspect) {
-	assert(!frozen_);
-	assert(!aspect->is_abstract());
+	ASSERT(!frozen_);
+	ASSERT(!aspect->is_abstract());
 	aspects_.push_back(aspect); // TODO: Check for circular dependencies.
 	size_ += aspect->size();
 }
@@ -106,7 +106,7 @@ void CompositeType::destruct(byte* place, IUniverse& universe) const {
 }
 
 void CompositeType::deserialize(byte* place, const ArchiveNode& node) const {
-	assert(frozen_);
+	ASSERT(frozen_);
 	base_type()->deserialize(place, node);
 	
 	const ArchiveNode& aspect_array = node["aspects"];
@@ -125,7 +125,7 @@ void CompositeType::deserialize(byte* place, const ArchiveNode& node) const {
 }
 
 void CompositeType::serialize(const byte* place, ArchiveNode& node) const {
-	assert(frozen_);
+	ASSERT(frozen_);
 	base_type()->serialize(place, node);
 	
 	size_t offset = base_type()->size();

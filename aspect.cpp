@@ -72,7 +72,7 @@ int main (int argc, char const *argv[])
 	ObjectPtr<Foo> foo = aspect_cast<Foo>(p);
 	ObjectPtr<Bar> bar = aspect_cast<Bar>(p);
 	bar->foo = foo;
-	assert(bar->foo != nullptr);
+	ASSERT(bar->foo != nullptr);
 	
 	bar->when_something_happens.connect(foo, &Foo::a_signal_receiver);
 	bar->when_something_happens(bar->bar);
@@ -97,7 +97,7 @@ int main (int argc, char const *argv[])
 	
 	JSONArchive json;
 	json.serialize(p, universe);
-	assert(bar->foo != nullptr);
+	ASSERT(bar->foo != nullptr);
 	json.write(std::cout);
 	
 	return 0;

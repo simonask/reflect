@@ -45,7 +45,8 @@ inline size_t CompositeType::offset_of_element(size_t idx) const {
 		if (i == idx) return offset;
 		offset += aspects_[i]->size();
 	}
-	assert(false); // unreachable
+	ASSERT(false); // unreachable
+	return SIZE_T_MAX;
 }
 
 #endif /* end of include guard: COMPOSITE_TYPE_HPP_K5R3HGBW */

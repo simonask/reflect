@@ -24,7 +24,7 @@ struct IUniverse {
 	ObjectPtr<T> create(std::string id) {
 		ObjectPtr<> o = this->create_object(get_type<T>(), std::move(id));
 		ObjectPtr<T> ptr = o.cast<T>();
-		assert(ptr != nullptr); // create_object did not create an instance of T.
+		ASSERT(ptr != nullptr); // create_object did not create an instance of T.
 		return ptr;
 	}
 };

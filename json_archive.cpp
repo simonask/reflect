@@ -17,7 +17,7 @@ ArchiveNode& JSONArchive::root() {
 }
 
 const ArchiveNode& JSONArchive::root() const {
-	assert(root_ != nullptr);
+	ASSERT(root_ != nullptr);
 	return *root_;
 }
 

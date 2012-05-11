@@ -13,7 +13,7 @@ ArchiveNode& ArchiveNode::array_push() {
 }
 
 const ArchiveNode& ArchiveNode::operator[](size_t idx) const {
-	assert(type() == Type::Array);
+	ASSERT(type() == Type::Array);
 	if (idx >= array_.size()) {
 		return archive_.empty();
 	}
@@ -34,7 +34,7 @@ ArchiveNode& ArchiveNode::operator[](size_t idx) {
 }
 
 const ArchiveNode& ArchiveNode::operator[](const std::string& key) const {
-	assert(type() == Type::Map);
+	ASSERT(type() == Type::Map);
 	auto it = map_.find(key);
 	if (it == map_.end()) {
 		return archive_.empty();
