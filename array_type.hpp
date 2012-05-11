@@ -3,7 +3,7 @@
 #define ARRAY_TYPE_HPP_JIO2A6YN
 
 #include "type.hpp"
-#include "archive.hpp"
+#include "archive_node.hpp"
 #include <vector>
 
 struct ArrayType : DerivedType {

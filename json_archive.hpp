@@ -3,6 +3,7 @@
 #define JSON_ARCHIVE_HPP_4OX35IUJ
 
 #include "archive.hpp"
+#include "archive_node.hpp"
 #include <deque>
 #include <map>
 #include <string>
@@ -11,7 +12,7 @@
 struct JSONArchive;
 
 struct JSONArchiveNode : ArchiveNode {
-	JSONArchiveNode(JSONArchive& archive, ArchiveNode::Type t = ArchiveNode::Empty);
+	JSONArchiveNode(JSONArchive& archive, ArchiveNodeType::Type t = ArchiveNodeType::Empty);
 	void write(std::ostream& os) const override { write(os, false, 0); }
 	void write(std::ostream& os, bool print_inline, int indent) const;
 };
@@ -23,7 +24,7 @@ struct JSONArchive : Archive {
 	void write(std::ostream& os) const override;
 	const ArchiveNode& operator[](const std::string& key) const override;
 	ArchiveNode& operator[](const std::string& key) override;
-	ArchiveNode* make(ArchiveNode::Type t = ArchiveNode::Empty) override { return make_internal(t); }
+	ArchiveNode* make(ArchiveNode::Type t = ArchiveNodeType::Empty) override { return make_internal(t); }
 	
 	const ArchiveNode& empty() const { return *empty_; }
 private:
@@ -31,7 +32,7 @@ private:
 	JSONArchiveNode* empty_;
 	JSONArchiveNode* root_;
 	std::deque<JSONArchiveNode> nodes_;
-	JSONArchiveNode* make_internal(ArchiveNode::Type t = ArchiveNode::Empty);
+	JSONArchiveNode* make_internal(ArchiveNodeType::Type t = ArchiveNodeType::Empty);
 };
 
 inline JSONArchiveNode::JSONArchiveNode(JSONArchive& archive, ArchiveNode::Type t) : ArchiveNode(archive, t) {}

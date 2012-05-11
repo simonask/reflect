@@ -5,6 +5,7 @@
 #include "basic.hpp"
 #include "type.hpp"
 #include "objectptr.hpp"
+#include "archive_node.hpp"
 #include <vector>
 #include <functional>
 #include <sstream>

@@ -1,12 +1,13 @@
 #include "archive.hpp"
+#include "objectptr.hpp"
+#include "serialize.hpp"
 #include <sstream>
 #include <iomanip>
 
-ArchiveNode& ArchiveNode::array_push() {
-	if (type() != Array) {
-		clear(Array);
+void Archive::serialize(ObjectPtr<> object, IUniverse& universe) {
+	::serialize(*object, root());
+	for (auto ref: serialize_references) {
+		ref->perform(universe);
 	}
-	ArchiveNode* n = archive_.make();
-	array_.push_back(n);
-	return *n;
+	serialize_references.clear();
 }

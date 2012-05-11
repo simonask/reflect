@@ -67,6 +67,18 @@ get_type() {
  	return build_type_info<T>();
 }
 
+template <typename T>
+typename std::enable_if<HasReflection<T>::Value, const DerivedType*>::type
+get_type(const T& object) {
+	return object.object_type();
+}
+
+template <typename T>
+typename std::enable_if<!HasReflection<T>::Value, const Type*>::type
+get_type(const T& value) {
+	return get_type<T>();
+}
+
 inline const DerivedType* get_type(const Object* object) {
 	return object->object_type();
 }

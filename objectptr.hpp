@@ -6,7 +6,7 @@
 #include "object.hpp"
 #include "reference_type.hpp"
 
-template <typename T, typename Enable = void>
+template <typename T = Object, typename Enable = void>
 struct ObjectPtr;
 
 template <typename T>

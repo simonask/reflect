@@ -3,7 +3,7 @@
 #define REFERENCE_TYPE_HPP_EAHSMBCU
 
 #include "type.hpp"
-#include "archive.hpp"
+#include "archive_node.hpp"
 
 struct ReferenceType : Type {
 	ReferenceType(std::string name) : name_(std::move(name)) {}
@@ -35,6 +35,16 @@ struct ReferenceTypeImpl : ReferenceType {
 };
 
 template <typename T>
+void ReferenceTypeImpl<T>::construct(byte* place, IUniverse&) const {
+	new(place) T;
+}
+
+template <typename T>
+void ReferenceTypeImpl<T>::destruct(byte* place, IUniverse&) const {
+	reinterpret_cast<T*>(place)->~T();
+}
+
+template <typename T>
 void ReferenceTypeImpl<T>::deserialize(byte* place, const ArchiveNode& node) const {
 	T& ptr = *reinterpret_cast<T*>(place);
 	node.register_reference_for_deserialization(ptr);
@@ -44,16 +54,6 @@ template <typename T>
 void ReferenceTypeImpl<T>::serialize(const byte* place, ArchiveNode& node) const {
 	const T& ptr = *reinterpret_cast<const T*>(place);
 	node.register_reference_for_serialization(ptr);
-}
-
-template <typename T>
-void ReferenceTypeImpl<T>::construct(byte* place, IUniverse&) const {
-	new(place) T;
-}
-
-template <typename T>
-void ReferenceTypeImpl<T>::destruct(byte* place, IUniverse&) const {
-	reinterpret_cast<T*>(place)->~T();
 }
 
 #endif /* end of include guard: REFERENCE_TYPE_HPP_EAHSMBCU */

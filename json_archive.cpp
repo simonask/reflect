@@ -11,7 +11,7 @@ JSONArchiveNode* JSONArchive::make_internal(ArchiveNode::Type node_type) {
 
 ArchiveNode& JSONArchive::root() {
 	if (root_ == nullptr) {
-		root_ = make_internal(ArchiveNode::Map);
+		root_ = make_internal(ArchiveNodeType::Map);
 	}
 	return *root_;
 }
@@ -51,8 +51,8 @@ static void print_string(std::ostream& os, const std::string& str) {
 
 void JSONArchiveNode::write(std::ostream& os, bool print_inline, int indent) const {
 	switch (type()) {
-		case Empty: os << "null"; break;
-		case Array: {
+		case ArchiveNodeType::Empty: os << "null"; break;
+		case ArchiveNodeType::Array: {
 			os << '[';
 			if (print_inline) {
 				for (size_t i = 0; i < array_.size(); ++i) {
@@ -76,7 +76,7 @@ void JSONArchiveNode::write(std::ostream& os, bool print_inline, int indent) con
 			os << ']';
 			break;
 		}
-		case Map: {
+		case ArchiveNodeType::Map: {
 			os << '{';
 			if (print_inline) {
 				for (auto it = map_.begin(); it != map_.end();) {
@@ -106,9 +106,9 @@ void JSONArchiveNode::write(std::ostream& os, bool print_inline, int indent) con
 			os << '}';
 			break;
 		}
-		case Integer: os << integer_value; break;
-		case Float: os << float_value; break;
-		case String: print_string(os, string_value); break;
+		case ArchiveNodeType::Integer: os << integer_value; break;
+		case ArchiveNodeType::Float: os << float_value; break;
+		case ArchiveNodeType::String: print_string(os, string_value); break;
 	}
 }
 

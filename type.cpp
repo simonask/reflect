@@ -1,5 +1,5 @@
 #include "type.hpp"
-#include "archive.hpp"
+#include "archive_node.hpp"
 #include <map>
 
 #define DEFINE_SIMPLE_TYPE(T, IS_FLOAT, IS_SIGNED) template <> const Type* build_type_info<T>() { \
