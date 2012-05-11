@@ -127,6 +127,7 @@ void CompositeType::deserialize(byte* place, const ArchiveNode& node) const {
 void CompositeType::serialize(const byte* place, ArchiveNode& node) const {
 	ASSERT(frozen_);
 	base_type()->serialize(place, node);
+	node["class"] = name();
 	
 	size_t offset = base_type()->size();
 	const byte* p = place;
