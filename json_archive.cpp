@@ -5,8 +5,7 @@ JSONArchive::JSONArchive() : root_(nullptr) {
 }
 
 JSONArchiveNode* JSONArchive::make_internal(ArchiveNode::Type node_type) {
-	nodes_.emplace_back(*this, node_type);
-	return &nodes_.back();
+	return nodes_.allocate(*this, node_type);
 }
 
 ArchiveNode& JSONArchive::root() {

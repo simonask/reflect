@@ -4,7 +4,7 @@
 
 #include "archive.hpp"
 #include "archive_node.hpp"
-#include <deque>
+#include "bag.hpp"
 #include <map>
 #include <string>
 
@@ -31,7 +31,7 @@ private:
 	friend struct JSONArchiveNode;
 	JSONArchiveNode* empty_;
 	JSONArchiveNode* root_;
-	std::deque<JSONArchiveNode> nodes_;
+	Bag<JSONArchiveNode> nodes_;
 	JSONArchiveNode* make_internal(ArchiveNodeType::Type t = ArchiveNodeType::Empty);
 };
 
