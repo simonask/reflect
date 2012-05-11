@@ -325,15 +325,14 @@ struct SerializeReference : SerializeReferenceBase {
 	
 	SerializeReference(ArchiveNode& node, const T& reference) : SerializeReferenceBase(node), reference_(reference) {}
 	void perform(const IUniverse& universe) {
-		Object* ptr = reference_.get();
-		if (ptr != nullptr) {
-			node_.set(universe.get_id(ptr));
+		if (reference_ != nullptr) {
+			node_.set(universe.get_id(reference_.get()));
 		} else {
 			node_.clear();
 		}
 	}
 private:
-	const T& reference_;
+	T reference_;
 };
 
 template <typename T>
