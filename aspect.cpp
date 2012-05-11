@@ -51,6 +51,7 @@ BEGIN_TYPE_INFO(Bar)
 	property(&Bar::bar, "bar", "Another number");
 	property(&Bar::list, "list", "A list of numbers");
 	property(&Bar::foo, "foo", "A reference to a foo");
+	signal(&Bar::when_something_happens, "when_something_happens", "La la la");
 END_TYPE_INFO()
 
 
