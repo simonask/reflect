@@ -58,21 +58,13 @@ struct HasReflection : HasMember<T, CheckHasBuildTypeInfo> {};
 template <typename T>
 typename std::enable_if<HasReflection<T>::Value, const typename T::TypeInfoType*>::type
 get_type() {
-	static const typename T::TypeInfoType* p = nullptr;
-	if (p == nullptr) {
-		p = T::build_type_info__();
-	}
-	return p;
+	return T::build_type_info__();
 }
 
 template <typename T>
 typename std::enable_if<!HasReflection<T>::Value, const Type*>::type
 get_type() {
-	static const Type* p = nullptr;
-	if (p == nullptr) {
-		p = build_type_info<T>();
-	}
-	return p;
+ 	return build_type_info<T>();
 }
 
 inline const DerivedType* get_type(const Object* object) {
