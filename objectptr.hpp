@@ -51,4 +51,10 @@ struct BuildTypeInfo<ObjectPtr<T>> {
 	}
 };
 
+template <typename OutputStream, typename T>
+OutputStream& operator<<(OutputStream& os, const ObjectPtr<T>& ptr) {
+	os << '(' << ptr.type()->name() << "*)" << ptr.get();
+	return os;
+}
+
 #endif /* end of include guard: OBJECTPTR_HPP_WICLN6JL */
