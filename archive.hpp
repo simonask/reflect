@@ -274,15 +274,6 @@ inline ArchiveNode& ArchiveNode::operator[](const std::string& key) {
 	}
 }
 
-inline ArchiveNode& ArchiveNode::array_push() {
-	if (type() != Array) {
-		clear(Array);
-	}
-	ArchiveNode* n = archive_.make();
-	array_.push_back(n);
-	return *n;
-}
-
 struct DeserializeReferenceBase {
 	virtual ~DeserializeReferenceBase() {}
 	DeserializeReferenceBase(std::string object_id) : object_id_(object_id) {}
