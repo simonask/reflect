@@ -4,7 +4,7 @@
 
 #include "type.hpp"
 #include "archive_node.hpp"
-#include <vector>
+
 
 struct ArrayType : DerivedType {
 public:
@@ -52,9 +52,9 @@ public:
 };
 
 template <typename T>
-struct BuildTypeInfo<std::vector<T>> {
+struct BuildTypeInfo<Array<T>> {
 	static const ArrayType* build() {
-		static const VariableLengthArrayType<std::vector<T>> type("std::vector");
+		static const VariableLengthArrayType<Array<T>> type("Array");
 		return &type;
 	}
 };

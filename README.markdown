@@ -47,7 +47,7 @@ In foo.hpp:
         void say_hi() { std::cout << "Hi!\n"; }
     private:
         int32                an_integer_property;
-        std::vector<float32> a_list_of_floats;
+        Array<float32> a_list_of_floats;
     };
 
 In foo.cpp:

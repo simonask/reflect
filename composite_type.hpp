@@ -4,6 +4,7 @@
 
 #include "type.hpp"
 #include "archive.hpp"
+#include "array.hpp"
 #include <new>
 
 struct CompositeType : DerivedType {
@@ -33,17 +34,10 @@ struct CompositeType : DerivedType {
 private:
 	const StructTypeBase* base_type_;
 	std::string name_;
-	std::vector<const DerivedType*> aspects_;
+	Array<const DerivedType*> aspects_;
 	bool frozen_;
 	size_t size_;
 };
-
-inline void CompositeType::add_aspect(const DerivedType* aspect) {
-	assert(!frozen_);
-	assert(!aspect->is_abstract());
-	aspects_.push_back(aspect); // TODO: Check for circular dependencies.
-	size_ += aspect->size();
-}
 
 inline size_t CompositeType::offset_of_element(size_t idx) const {
 	size_t offset = sizeof(Object);

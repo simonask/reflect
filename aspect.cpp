@@ -1,6 +1,6 @@
 #include <iostream>
 #include <string>
-#include <vector>
+
 #include <map>
 
 #include "object.hpp"
@@ -36,7 +36,7 @@ struct Bar : Object {
 	REFLECT;
 	
 	int bar;
-	std::vector<int> list;
+	Array<int> list;
 	ObjectPtr<Foo> foo;
 	Bar() : bar(456), foo(nullptr) {}
 	~Bar() {

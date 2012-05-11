@@ -4,7 +4,7 @@
 
 #include <string>
 #include <map>
-#include <vector>
+
 
 #include "object.hpp"
 #include "objectptr.hpp"
@@ -48,7 +48,7 @@ private:
 	
 	std::map<std::string, ObjectPtr<>> object_map_;
 	std::map<ObjectPtr<const Object>, std::string> reverse_object_map_;
-	std::vector<Object*> memory_map_;
+	Array<Object*> memory_map_;
 	ObjectPtr<> root_;
 	std::string empty_id_;
 };

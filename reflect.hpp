@@ -57,8 +57,8 @@ struct StructTypeBuilder {
 	bool is_abstract_;
 	std::string name_;
 	std::string description_;
-	std::vector<AttributeForObject<T>*> attributes_;
-	std::vector<SlotForObject<T>*> slots_;
+	Array<AttributeForObject<T>*> attributes_;
+	Array<SlotForObject<T>*> slots_;
 };
 
 #define BEGIN_TYPE_INFO(TYPE) \

@@ -2,7 +2,7 @@
 #include "struct_type.hpp"
 #include <sstream>
 
-std::string SignalTypeBase::build_signal_name(const std::vector<const Type*>& signature) {
+std::string SignalTypeBase::build_signal_name(const Array<const Type*>& signature) {
 	std::stringstream ss;
 	ss << "Signal<";
 	for (size_t i = 0; i < signature.size(); ++i) {

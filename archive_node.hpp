@@ -4,7 +4,6 @@
 
 #include <string>
 #include <map>
-#include <vector>
 
 #include "archive_node_type.hpp"
 #include "type.hpp"
@@ -74,7 +73,7 @@ protected:
 	Type type_;
 	// TODO: Use an 'any'/'variant' type for the following:
 	std::map<std::string, ArchiveNode*> map_;
-	std::vector<ArchiveNode*> array_;
+	Array<ArchiveNode*> array_;
 	std::string string_value;
 	union {
 		int64 integer_value;

@@ -6,7 +6,7 @@
 #include "type.hpp"
 #include "objectptr.hpp"
 #include "archive_node.hpp"
-#include <vector>
+
 #include <functional>
 #include <sstream>
 
@@ -45,16 +45,16 @@ public:
 	void operator()(Args... args) const { invoke(std::forward<Args>(args)...); }
 	
 	size_t num_connections() const { return invokers_.size(); }
-	const SlotInvoker<Args...>* connection_at(size_t idx) const { return invokers_[idx]; }
+	const SlotInvoker<Args...>* connection_at(size_t idx) const { return static_cast<SlotInvoker<Args...>*>(invokers_[idx]); }
 private:
-	std::vector<SlotInvoker<Args...>*> invokers_;
+	Array<SlotInvokerBase*> invokers_;
 };
 
 struct SignalTypeBase : Type {
 public:
-	virtual const std::vector<const Type*>& signature() const = 0;
+	virtual const Array<const Type*>& signature() const = 0;
 protected:
-	static std::string build_signal_name(const std::vector<const Type*>& signature);
+	static std::string build_signal_name(const Array<const Type*>& signature);
 };
 
 template <typename... Args>
@@ -65,7 +65,7 @@ struct SignalType : SignalTypeBase {
 	void serialize(const byte* place, ArchiveNode&) const;
 	const std::string& name() const { return name_; }
 	size_t size() const { return sizeof(Signal<Args...>); }
-	const std::vector<const Type*>& signature() const { return signature_; }
+	const Array<const Type*>& signature() const { return signature_; }
 	
 	SignalType() {
 		build_signature<Args...>(signature_);
@@ -73,7 +73,7 @@ struct SignalType : SignalTypeBase {
 	}
 private:
 	std::string name_;
-	std::vector<const Type*> signature_;
+	Array<const Type*> signature_;
 };
 
 template <typename... Args>
@@ -115,7 +115,7 @@ struct FunctionInvoker : SlotInvoker<Args...> {
 template <typename... Args>
 void Signal<Args...>::invoke(Args... args) const {
 	for (auto& invoker: invokers_) {
-		invoker->invoke(std::forward<Args>(args)...);
+		static_cast<SlotInvoker<Args...>*>(invoker)->invoke(std::forward<Args>(args)...);
 	}
 }
 
@@ -137,12 +137,12 @@ struct SlotAttributeBase {
 	const std::string& name() const { return name_; }
 	const std::string& description() const { return description_; }
 	virtual std::string signature_description() const = 0;
-	const std::vector<const Type*>& signature() const { return signature_; }
+	const Array<const Type*>& signature() const { return signature_; }
 private:
 	std::string name_;
 	std::string description_;
 protected:
-	std::vector<const Type*> signature_;
+	Array<const Type*> signature_;
 };
 
 template <typename T>

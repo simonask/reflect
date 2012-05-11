@@ -31,8 +31,8 @@ struct Archive {
 	void register_reference_for_deserialization(DeserializeReferenceBase* ref) { deserialize_references.push_back(ref); }
 	void register_reference_for_serialization(SerializeReferenceBase* ref) { serialize_references.push_back(ref); }
 private:
-	std::vector<DeserializeReferenceBase*> deserialize_references;
-	std::vector<SerializeReferenceBase*> serialize_references;
+	Array<DeserializeReferenceBase*> deserialize_references;
+	Array<SerializeReferenceBase*> serialize_references;
 };
 
 #endif /* end of include guard: ARCHIVE_HPP_A0L9H8RE */

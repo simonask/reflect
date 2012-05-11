@@ -3,9 +3,9 @@
 #define TYPE_HPP_ZXLGBWRF
 
 #include "basic.hpp"
+#include "array.hpp"
 #include "object.hpp"
 #include <string>
-#include <vector>
 #include <map>
 #include <sstream>
 #include <algorithm>
@@ -75,7 +75,7 @@ struct EnumType : SimpleType {
 	void serialize(const byte*, ArchiveNode&) const override;
 	void* cast(const SimpleType* to, void* o) const;
 private:
-	std::vector<std::tuple<std::string, ssize_t, std::string>> entries_;
+	Array<std::tuple<std::string, ssize_t, std::string>> entries_;
 	ssize_t max_;
 	ssize_t min_;
 };
@@ -225,11 +225,11 @@ std::string get_signature_description() {
 
 
 template <typename Head = void>
-void build_signature(std::vector<const Type*>& signature) {
+void build_signature(Array<const Type*>& signature) {
 	signature.push_back(get_type<Head>());
 }
 template <typename Head, typename Next, typename... Rest>
-void build_signature(std::vector<const Type*>& signature) {
+void build_signature(Array<const Type*>& signature) {
 	signature.push_back(get_type<Head>());
 	build_signature<Next, Rest...>(signature);
 }

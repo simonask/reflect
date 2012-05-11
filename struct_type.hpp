@@ -4,7 +4,7 @@
 
 #include "type.hpp"
 #include <memory>
-#include <vector>
+
 #include <new>
 #include "attribute.hpp"
 #include "signal.hpp"
@@ -17,7 +17,7 @@ struct StructTypeBase : DerivedType {
 	const std::string& description() const { return description_; }
 	Object* cast(const DerivedType* to, Object* o) const override;
 	const StructTypeBase* super() const;
-	virtual std::vector<const AttributeBase*> attributes() const = 0;
+	virtual Array<const AttributeBase*> attributes() const = 0;
 	virtual size_t num_slots() const = 0;
 	virtual const SlotAttributeBase* slot_at(size_t idx) const = 0;
 	
@@ -55,15 +55,15 @@ struct StructType : StructTypeBase {
 	void destruct(byte* place, IUniverse&) const override { reinterpret_cast<T*>(place)->~T(); }
 	size_t size() const override { return sizeof(T); }
 	
-	void set_properties(std::vector<AttributeForObject<T>*> properties) {
+	void set_properties(Array<AttributeForObject<T>*> properties) {
 		properties_ = std::move(properties);
 	}
-	void set_slots(std::vector<SlotForObject<T>*> slots) {
+	void set_slots(Array<SlotForObject<T>*> slots) {
 		slots_ = std::move(slots);
 	}
 	
-	std::vector<const AttributeBase*> attributes() const override {
-		std::vector<const AttributeBase*> result;
+	Array<const AttributeBase*> attributes() const override {
+		Array<const AttributeBase*> result;
 		result.resize(properties_.size());
 		for (auto& it: properties_) {
 			result.push_back(dynamic_cast<const AttributeBase*>(it));
@@ -83,8 +83,8 @@ struct StructType : StructTypeBase {
 	void set_abstract(bool b) { is_abstract_ = b; }
 	bool is_abstract() const override { return is_abstract_; }
 protected:
-	std::vector<AttributeForObject<T>*> properties_;
-	std::vector<SlotForObject<T>*> slots_;
+	Array<AttributeForObject<T>*> properties_;
+	Array<SlotForObject<T>*> slots_;
 	bool is_abstract_;
 };
 

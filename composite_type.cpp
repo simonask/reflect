@@ -1,6 +1,13 @@
 #include "composite_type.hpp"
 #include "struct_type.hpp"
 
+void CompositeType::add_aspect(const DerivedType* aspect) {
+	assert(!frozen_);
+	assert(!aspect->is_abstract());
+	aspects_.push_back(aspect); // TODO: Check for circular dependencies.
+	size_ += aspect->size();
+}
+
 const StructTypeBase* CompositeType::base_type() const {
 	return base_type_ ? base_type_ : get_type<Object>();
 }
