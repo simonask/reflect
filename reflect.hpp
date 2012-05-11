@@ -33,8 +33,7 @@ struct StructTypeBuilder {
 	
 	template <typename... Args>
 	Self& signal(Signal<Args...> T::* member, std::string name, std::string description) {
-		signals_.push_back(new SignalAttribute<T, Args...>(std::move(name), std::move(description), member));
-		return *this;
+		return property(member, name, description);
 	}
 	
 	template <typename R, typename... Args>
@@ -50,6 +49,7 @@ struct StructTypeBuilder {
 		StructType<T> type(super_, std::move(name_), std::move(description_));
 		type.set_abstract(is_abstract_);
 		type.set_properties(std::move(attributes_));
+		type.set_slots(std::move(slots_));
 		return type;
 	}
 	
@@ -58,7 +58,6 @@ struct StructTypeBuilder {
 	std::string name_;
 	std::string description_;
 	std::vector<AttributeForObject<T>*> attributes_;
-	std::vector<SignalForObject<T>*> signals_;
 	std::vector<SlotForObject<T>*> slots_;
 };
 

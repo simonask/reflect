@@ -7,6 +7,10 @@
 #include <vector>
 #include <new>
 #include "attribute.hpp"
+#include "signal.hpp"
+
+struct SlotAttributeBase;
+template <typename T> struct SlotForObject;
 
 struct StructTypeBase : DerivedType {
 	const std::string& name() const override { return name_; }
@@ -14,6 +18,23 @@ struct StructTypeBase : DerivedType {
 	Object* cast(const DerivedType* to, Object* o) const override;
 	const StructTypeBase* super() const;
 	virtual std::vector<const AttributeBase*> attributes() const = 0;
+	virtual size_t num_slots() const = 0;
+	virtual const SlotAttributeBase* slot_at(size_t idx) const = 0;
+	
+	template <typename T, typename R, typename... Args>
+	const SlotAttributeBase* find_slot_for_method(R(T::*method)(Args...)) const {
+		size_t n = num_slots();
+		for (size_t i = 0; i < n; ++i) {
+			const SlotAttributeBase* s = slot_at(i);
+			const SlotAttribute<T, R, Args...>* slot = dynamic_cast<const SlotAttribute<T,R,Args...>*>(s);
+			if (slot != nullptr) {
+				if (slot->method() == method) {
+					return slot;
+				}
+			}
+		}
+		return nullptr;
+	}
 protected:
 	StructTypeBase(const StructTypeBase* super, std::string name, std::string description) : super_(super), name_(std::move(name)), description_(std::move(description)) {}
 	
@@ -37,6 +58,9 @@ struct StructType : StructTypeBase {
 	void set_properties(std::vector<AttributeForObject<T>*> properties) {
 		properties_ = std::move(properties);
 	}
+	void set_slots(std::vector<SlotForObject<T>*> slots) {
+		slots_ = std::move(slots);
+	}
 	
 	std::vector<const AttributeBase*> attributes() const override {
 		std::vector<const AttributeBase*> result;
@@ -46,6 +70,8 @@ struct StructType : StructTypeBase {
 		}
 		return result;
 	}
+	size_t num_slots() const { return slots_.size(); }
+	const SlotAttributeBase* slot_at(size_t idx) const { return dynamic_cast<const SlotAttributeBase*>(slots_[idx]); }
 	
 	size_t num_elements() const override { return properties_.size(); }
 	const Type* type_of_element(size_t idx) const override { return properties_[idx]->attribute_type(); }
@@ -58,6 +84,7 @@ struct StructType : StructTypeBase {
 	bool is_abstract() const override { return is_abstract_; }
 protected:
 	std::vector<AttributeForObject<T>*> properties_;
+	std::vector<SlotForObject<T>*> slots_;
 	bool is_abstract_;
 };
 
@@ -83,6 +110,12 @@ void StructType<T>::serialize(const byte* object, ArchiveNode& node) const {
 		property->serialize_attribute(obj, node[property->attribute_name()]);
 	}
 	node["class"] = name();
+}
+
+template <typename T, typename R, typename... Args>
+const SlotAttributeBase* MemberSlotInvoker<T,R,Args...>::slot() const {
+	const StructTypeBase* type = get_type<T>();
+	return type->find_slot_for_method(member_);
 }
 
 #endif /* end of include guard: STRUCT_TYPE_HPP_PTB31EJN */

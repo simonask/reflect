@@ -3,12 +3,26 @@
 #define SIGNAL_HPP_IVWSWZJM
 
 #include "basic.hpp"
+#include "type.hpp"
+#include "objectptr.hpp"
 #include <vector>
 #include <functional>
 #include <sstream>
 
+struct SlotAttributeBase;
+struct Object;
+struct StructTypeBase;
+
+struct SignalTypeBase;
+template <typename... Args> struct SignalType;
+
+struct SlotInvokerBase {
+	virtual Object* receiver() const = 0;
+	virtual const SlotAttributeBase* slot() const = 0;
+};
+
 template <typename... Args>
-struct SlotInvoker {
+struct SlotInvoker : SlotInvokerBase {
 	virtual void invoke(Args...) const = 0;
 };
 
@@ -22,8 +36,45 @@ public:
 	
 	void invoke(Args...) const;
 	void operator()(Args... args) const { invoke(std::forward<Args>(args)...); }
+	
+	size_t num_connections() const { return invokers_.size(); }
+	const SlotInvoker<Args...>* connection_at(size_t idx) const { return invokers_[idx]; }
 private:
 	std::vector<SlotInvoker<Args...>*> invokers_;
+};
+
+struct SignalTypeBase : Type {
+public:
+	virtual const std::vector<const Type*>& signature() const = 0;
+protected:
+	static std::string build_signal_name(const std::vector<const Type*>& signature);
+};
+
+template <typename... Args>
+struct SignalType : SignalTypeBase {
+	void construct(byte* place, IUniverse&) const { new(place) Signal<Args...>; }
+	void destruct(byte* place, IUniverse&) const { ::destruct(reinterpret_cast<Signal<Args...>*>(place)); }
+	void deserialize(byte* place, const ArchiveNode&) const;
+	void serialize(const byte* place, ArchiveNode&) const;
+	const std::string& name() const { return name_; }
+	size_t size() const { return sizeof(Signal<Args...>); }
+	const std::vector<const Type*>& signature() const { return signature_; }
+	
+	SignalType() {
+		build_signature<Args...>(signature_);
+		name_ = build_signal_name(signature_);
+	}
+private:
+	std::string name_;
+	std::vector<const Type*> signature_;
+};
+
+template <typename... Args>
+struct BuildTypeInfo<Signal<Args...>> {
+	static const SignalType<Args...>* build() {
+		static const SignalType<Args...> type;
+		return &type;
+	}
 };
 
 template <typename T, typename R, typename... Args>
@@ -35,6 +86,10 @@ struct MemberSlotInvoker : SlotInvoker<Args...> {
 	void invoke(Args... args) const {
 		(object_->*member_)(std::forward<Args>(args)...);
 	}
+	
+	Object* receiver() const { return object_; }
+	
+	const SlotAttributeBase* slot() const; 
 	
 	MemberSlotInvoker(T* object, FunctionType member) : object_(object), member_(member) {}
 };
@@ -68,47 +123,6 @@ template <typename R>
 void Signal<Args...>::connect(std::function<R(Args...)> function) {
 	invokers_.push_back(new FunctionInvoker<R, Args...>(function));
 }
-
-struct SignalAttributeBase {
-	SignalAttributeBase(std::string name, std::string description) : name_(std::move(name)), description_(std::move(description)) {}
-	virtual ~SignalAttributeBase() {}
-	const std::string& name() const { return name_; }
-	const std::string& description() const { return description_; }
-	virtual std::string signature_description() const = 0;
-	const std::vector<const Type*>& signature() const { return signature_; }
-private:
-	std::string name_;
-	std::string description_;
-protected:
-	std::vector<const Type*> signature_;
-};
-
-template <typename T>
-struct SignalForObject {
-	virtual ~SignalForObject() {}
-};
-
-template <typename... Args>
-struct SignalWithSignature : SignalAttributeBase {
-	SignalWithSignature(std::string name, std::string description) : SignalAttributeBase(name, description) {
-		signature_.reserve(sizeof...(Args));
-		build_signature<Args...>(signature_);
-	}
-	virtual ~SignalWithSignature() {}
-	
-	std::string signature_description() const override {
-		return get_signature_description<Args...>();
-	}
-};
-
-template <typename T, typename... Args>
-struct SignalAttribute : SignalForObject<T>, SignalWithSignature<Args...> {
-	typedef Signal<Args...> T::* MemberType;
-	
-	SignalAttribute(std::string name, std::string description, MemberType member) : SignalWithSignature<Args...>(name, description), member_(member) {}
-	
-	MemberType member_;
-};
 
 struct SlotAttributeBase {
 	SlotAttributeBase(std::string name, std::string description) : name_(name), description_(description) {}
@@ -149,6 +163,30 @@ struct SlotAttribute : SlotForObject<T>, SlotWithSignature<Args...> {
 	SlotAttribute(std::string name, std::string description, FunctionType function) : SlotWithSignature<Args...>(name, description), function_(function) {}
 	
 	FunctionType function_;
+	
+	FunctionType method() const { return function_; }
 };
+
+template <typename... Args>
+void SignalType<Args...>::deserialize(byte* place, const ArchiveNode& node) const {
+	// XXX TODO!
+	assert(false);
+}
+
+template <typename... Args>
+void SignalType<Args...>::serialize(const byte* place, ArchiveNode& node) const {
+	const Signal<Args...>* signal = reinterpret_cast<const Signal<Args...>*>(place);
+	for (size_t i = 0; i < signal->num_connections(); ++i) {
+		const SlotInvoker<Args...>* invoker = signal->connection_at(i);
+		ObjectPtr<Object> receiver = invoker->receiver();
+		const SlotAttributeBase* slot = invoker->slot();
+		if (receiver != nullptr && slot != nullptr) {
+			ArchiveNode& signal_connection = node.array_push();
+			ArchiveNode& receiver_node = signal_connection["receiver"];
+			get_type<ObjectPtr<Object>>()->serialize(reinterpret_cast<const byte*>(&receiver), receiver_node); // TODO! Prettier API…!
+			signal_connection["slot"] = slot->name();
+		}
+	}
+}
 
 #endif /* end of include guard: SIGNAL_HPP_IVWSWZJM */
