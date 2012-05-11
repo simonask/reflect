@@ -16,7 +16,6 @@ Features
 Planned/pending features
 ------------------------
 
-* Serialization of signal/slot connections.
 * YAML serialization.
 * XML serialization.
 * Built-in support for serialization of more standard library types.
