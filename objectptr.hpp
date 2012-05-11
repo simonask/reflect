@@ -16,7 +16,7 @@ struct ObjectPtr<T, typename std::enable_if<IsDerivedFromObject<T>::Value>::type
 	ObjectPtr() : ptr_(nullptr) {}
 	ObjectPtr(T* ptr) : ptr_(ptr) {}
 	template <typename U>
-	ObjectPtr(ObjectPtr<U> other) { ptr_ = other.ptr_; }
+	ObjectPtr(ObjectPtr<U> other) { ptr_ = other.get(); }
 	ObjectPtr(const ObjectPtr<T>& other) { ptr_ = other.ptr_; }
 	ObjectPtr(ObjectPtr<T>&& other) { ptr_ = other.ptr_; }
 	template <typename U>
@@ -39,6 +39,9 @@ struct ObjectPtr<T, typename std::enable_if<IsDerivedFromObject<T>::Value>::type
 	T* get() const { return ptr_; }
 	T* operator->() const { return ptr_; }
 	T& operator*() const { return *ptr_; }
+	const Type* type() const { return get_type(*ptr_); }
+	
+	
 	bool operator<(const ObjectPtr<T>& other) const { return ptr_ < other.ptr_; }
 private:
 	T* ptr_;
@@ -51,6 +54,18 @@ struct BuildTypeInfo<ObjectPtr<T>> {
 		return &type;
 	}
 };
+
+template <typename To, typename From>
+ObjectPtr<To>
+aspect_cast(ObjectPtr<From> ptr) {
+	return ObjectPtr<To>(aspect_cast<To>(ptr.get()));
+}
+
+template <typename From>
+ObjectPtr<>
+aspect_cast(ObjectPtr<From> ptr, const DerivedType* type) {
+	return ObjectPtr<>(aspect_cast(ptr.get(), type));
+}
 
 template <typename OutputStream, typename T>
 OutputStream& operator<<(OutputStream& os, const ObjectPtr<T>& ptr) {

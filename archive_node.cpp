@@ -1,5 +1,7 @@
 #include "archive_node.hpp"
 #include "archive.hpp"
+#include "universe.hpp"
+#include "objectptr.hpp"
 
 ArchiveNode& ArchiveNode::array_push() {
 	if (type() != Type::Array) {
@@ -61,4 +63,12 @@ void ArchiveNode::register_reference_for_deserialization_impl(DeserializeReferen
 
 void ArchiveNode::register_reference_for_serialization_impl(SerializeReferenceBase* ref) {
 	archive_.register_reference_for_serialization(ref);
+}
+
+Object* DeserializeReferenceBase::get_object(IUniverse& universe) const {
+	return universe.get_object(object_id_).get();
+}
+
+std::string SerializeReferenceBase::get_id(const IUniverse& universe, Object* obj) const {
+	return universe.get_id(obj);
 }

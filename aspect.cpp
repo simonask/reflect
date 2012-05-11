@@ -64,13 +64,13 @@ int main (int argc, char const *argv[])
 	t->add_aspect(get_type<Bar>());
 	t->freeze();
 	
-	Object* p = universe.create_object(t, "Composite FooBar");
-	Bar* b = universe.create<Bar>("Bar");
-	std::cout << "p: " << p << '\n';
-	std::cout << "b: " << b << '\n';
+	ObjectPtr<> p = universe.create_object(t, "Composite FooBar");
+	ObjectPtr<Bar> b = universe.create<Bar>("Bar");
+	std::cout << "p: " << p.get() << '\n';
+	std::cout << "b: " << b.get() << '\n';
 	
-	Foo* foo = aspect_cast<Foo>(p);
-	Bar* bar = aspect_cast<Bar>(p);
+	ObjectPtr<Foo> foo = aspect_cast<Foo>(p);
+	ObjectPtr<Bar> bar = aspect_cast<Bar>(p);
 	bar->foo = foo;
 	assert(bar->foo != nullptr);
 	
@@ -79,7 +79,7 @@ int main (int argc, char const *argv[])
 	
 	if (foo != nullptr) {
 		std::cout << "Foo (" << foo << "): " << foo->foo << '\n';
-		Object* comp = aspect_cast(foo, t);
+		ObjectPtr<> comp = aspect_cast(foo, t);
 		if (comp != nullptr) {
 			std::cout << "Composite: " << comp << '\n';
 		}
@@ -89,7 +89,7 @@ int main (int argc, char const *argv[])
 		bar->list.push_back(1);
 		bar->list.push_back(2);
 		bar->list.push_back(3);
-		Object* comp = aspect_cast(foo, t);
+		ObjectPtr<> comp = aspect_cast(foo, t);
 		if (comp != nullptr) {
 			std::cout << "Composite: " << comp << '\n';
 		}

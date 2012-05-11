@@ -7,12 +7,12 @@
 #include <vector>
 
 #include "archive_node_type.hpp"
-#include "universe.hpp"
 #include "type.hpp"
 
 struct Archive;
 struct DeserializeReferenceBase;
 struct SerializeReferenceBase;
+struct IUniverse;
 
 struct ArchiveNode {
 	typedef ArchiveNodeType::Type Type;
@@ -210,6 +210,7 @@ struct DeserializeReferenceBase {
 	virtual void perform(IUniverse&) = 0;
 protected:
 	std::string object_id_;
+	Object* get_object(IUniverse&) const;
 };
 
 template <typename T>
@@ -219,7 +220,7 @@ public:
 	
 	DeserializeReference(std::string object_id, T& reference) : DeserializeReferenceBase(object_id), reference_(reference) {}
 	void perform(IUniverse& universe) {
-		Object* object_ptr = universe.get_object(object_id_);
+		Object* object_ptr = get_object(universe);
 		if (object_ptr == nullptr) {
 			// TODO: Warn about non-existing object ID.
 		}
@@ -247,6 +248,7 @@ struct SerializeReferenceBase {
 	virtual void perform(const IUniverse&) = 0;
 protected:
 	ArchiveNode& node_;
+	std::string get_id(const IUniverse&, Object*) const;
 };
 
 template <typename T>
@@ -256,7 +258,7 @@ struct SerializeReference : SerializeReferenceBase {
 	SerializeReference(ArchiveNode& node, const T& reference) : SerializeReferenceBase(node), reference_(reference) {}
 	void perform(const IUniverse& universe) {
 		if (reference_ != nullptr) {
-			node_.set(universe.get_id(reference_.get()));
+			node_.set(get_id(universe, reference_.get()));
 		} else {
 			node_.clear();
 		}

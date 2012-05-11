@@ -3,13 +3,13 @@
 
 #include <iomanip>
 
-Object* TestUniverse::create_root(const DerivedType* type, std::string id) {
+ObjectPtr<> TestUniverse::create_root(const DerivedType* type, std::string id) {
 	clear();
 	root_ = create_object(type, std::move(id));
 	return root_;
 }
 
-Object* TestUniverse::create_object(const DerivedType* type, std::string id) {
+ObjectPtr<> TestUniverse::create_object(const DerivedType* type, std::string id) {
 	size_t sz = type->size();
 	byte* memory = new byte[sz];
 	type->construct(memory, *this);
@@ -19,7 +19,7 @@ Object* TestUniverse::create_object(const DerivedType* type, std::string id) {
 	return object;
 }
 
-bool TestUniverse::rename_object(Object* object, std::string new_id) {
+bool TestUniverse::rename_object(ObjectPtr<> object, std::string new_id) {
 	assert(object->universe() == this);
 	
 	// erase old name from database
@@ -65,7 +65,7 @@ bool TestUniverse::rename_object(Object* object, std::string new_id) {
 	return renamed_exact;
 }
 
-const std::string& TestUniverse::get_id(const Object* object) const {
+const std::string& TestUniverse::get_id(ObjectPtr<const Object> object) const {
 	auto it = reverse_object_map_.find(object);
 	if (it != reverse_object_map_.end()) {
 		return it->second;

@@ -32,6 +32,12 @@ class Signal {
 public:
 	template <typename Receiver, typename R>
 	void connect(Receiver* object, R(Receiver::*)(Args...));
+	template <typename Receiver, typename R>
+	void connect(const Receiver* object, R(Receiver::*)(Args...) const);
+	template <typename Receiver, typename R>
+	void connect(ObjectPtr<Receiver> object, R(Receiver::*method)(Args...)) { connect(object.get(), method); }
+	template <typename Receiver, typename R>
+	void connect(ObjectPtr<const Receiver> object, R(Receiver::*method)(Args...) const) { connect(object.get(), method); }
 	template <typename R>
 	void connect(std::function<R(Args...)>);
 	
