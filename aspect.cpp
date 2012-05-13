@@ -12,6 +12,7 @@
 #include "array_type.hpp"
 #include "json_archive.hpp"
 #include "universe.hpp"
+#include "maybe.hpp"
 
 struct Foo : Object {
 	REFLECT;
@@ -99,6 +100,19 @@ int main (int argc, char const *argv[])
 	json.serialize(p, universe);
 	ASSERT(bar->foo != nullptr);
 	json.write(std::cout);
+	
+	Maybe<int> m;
+	maybe_if(m, [](int n) { 
+		std::cout << "An int: " << n << '\n';
+	}).otherwise([&]() {
+		std::cout << "Setting m...\n";
+		m = 123;
+	});
+	
+	auto m2 = maybe_if(m, [](int a) { return a + 567; });
+	maybe_if(m2, [](int b) {
+		std::cout << "Added int: " << b << '\n';
+	});
 	
 	return 0;
 }
