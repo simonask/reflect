@@ -6,6 +6,8 @@
 #include <type_traits>
 #include <new>
 
+template <typename T, typename R, typename Functor> struct MaybeIfImpl;
+
 template <typename T>
 class Maybe {
 public:
@@ -21,12 +23,6 @@ public:
 	Maybe<T>& operator=(T&& other);
 	
 	void clear();
-	const T* get() const { return ptr_; }
-	T* get() { return ptr_; }
-	T* operator->() { return get(); }
-	const T* operator->() const { return get(); }
-	T& operator*() { return *get(); }
-	const T& operator*() const { return *get(); }
 	
 	explicit operator bool() const { return get() != nullptr; }
 	
@@ -37,6 +33,16 @@ public:
 		return b;
 	}
 private:
+	template <typename U, typename R, typename Functor> friend struct MaybeIfImpl;
+	
+	const T* get() const { return ptr_; }
+	T* get() { return ptr_; }
+	T* operator->() { return get(); }
+	const T* operator->() const { return get(); }
+	T& operator*() { return *get(); }
+	const T& operator*() const { return *get(); }
+	
+	
 	T* ptr_;
 	struct Placeholder {
 		byte _[sizeof(T)];
@@ -179,9 +185,6 @@ struct BooleanHolder {
 		return value_;
 	}
 };
-
-template <typename T, typename R, typename Functor>
-struct MaybeIfImpl;
 
 template <typename T, typename Functor>
 struct MaybeIfImpl<T, void, Functor> {
