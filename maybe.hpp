@@ -9,11 +9,6 @@
 template <typename T>
 class Maybe {
 public:
-	static const bool IsMoveConstructible = std::is_move_constructible<T>::value;
-	static const bool IsMoveAssignable = std::is_move_assignable<T>::value;
-	static const bool IsCopyConstructible = std::is_copy_constructible<T>::value;
-	static const bool IsCopyAssignable = std::is_copy_assignable<T>::value;
-	
 	Maybe() : ptr_(nullptr) {}
 	Maybe(const Maybe<T>& other);
 	Maybe(Maybe<T>&& other);
@@ -34,6 +29,13 @@ public:
 	const T& operator*() const { return *get(); }
 	
 	explicit operator bool() const { return get() != nullptr; }
+	
+	template <typename Functor>
+	bool otherwise(Functor functor) {
+		bool b = *this;
+		if (!b) functor();
+		return b;
+	}
 private:
 	T* ptr_;
 	struct Placeholder {
@@ -167,18 +169,29 @@ struct RemoveMaybe {
 	typedef T Type;
 };
 
+struct BooleanHolder {
+	BooleanHolder(bool value) : value_(value) {}
+	bool value_;
+	
+	template <typename Functor>
+	bool otherwise(Functor functor) {
+		if (!value_) functor();
+		return value_;
+	}
+};
+
 template <typename T, typename R, typename Functor>
 struct MaybeIfImpl;
 
 template <typename T, typename Functor>
 struct MaybeIfImpl<T, void, Functor> {
-	typedef bool ResultType;
+	typedef BooleanHolder ResultType;
 	
-	static bool maybe_if(Maybe<T>& maybe, Functor function) {
+	static BooleanHolder maybe_if(Maybe<T>& maybe, Functor function) {
 		if (maybe) { function(*maybe); return true; }
 		return false;
 	}
-	static bool maybe_if(const Maybe<T>& maybe, Functor function) {
+	static BooleanHolder maybe_if(const Maybe<T>& maybe, Functor function) {
 		if (maybe) { function(*maybe); return true; }
 		return false;
 	}
