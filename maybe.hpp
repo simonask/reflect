@@ -109,6 +109,7 @@ Maybe<T>::Maybe(const Maybe<T>& other) : ptr_(nullptr) {
 template <typename T>
 Maybe<T>::Maybe(Maybe<T>&& other) : ptr_(nullptr) {
 	if (other) assign(std::move(*other));
+	other.clear();
 }
 
 template <typename T>
@@ -130,7 +131,7 @@ Maybe<T>& Maybe<T>::operator=(const Maybe<T>& other) {
 
 template <typename T>
 Maybe<T>& Maybe<T>::operator=(Maybe<T>&& other) {
-	if (*other) assign(std::move(other));
+	if (other) { assign(std::move(*other)); other.clear(); }
 	else clear();
 	return *this;
 }
