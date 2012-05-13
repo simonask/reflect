@@ -31,7 +31,7 @@ private:
 	friend struct JSONArchiveNode;
 	JSONArchiveNode* empty_;
 	JSONArchiveNode* root_;
-	Bag<JSONArchiveNode> nodes_;
+	ContainedBag<JSONArchiveNode> nodes_;
 	JSONArchiveNode* make_internal(ArchiveNodeType::Type t = ArchiveNodeType::Empty);
 };
 
