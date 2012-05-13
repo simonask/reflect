@@ -156,4 +156,75 @@ void Maybe<T>::clear() {
 	}
 }
 
+template <typename T>
+struct RemoveMaybe;
+template <typename T>
+struct RemoveMaybe<Maybe<T>> {
+	typedef T Type;
+};
+template <typename T>
+struct RemoveMaybe {
+	typedef T Type;
+};
+
+template <typename T, typename R, typename Functor>
+struct MaybeIfImpl;
+
+template <typename T, typename Functor>
+struct MaybeIfImpl<T, void, Functor> {
+	typedef bool ResultType;
+	
+	static bool maybe_if(Maybe<T>& maybe, Functor function) {
+		if (maybe) { function(*maybe); return true; }
+		return false;
+	}
+	static bool maybe_if(const Maybe<T>& maybe, Functor function) {
+		if (maybe) { function(*maybe); return true; }
+		return false;
+	}
+};
+
+template <typename T, typename R, typename Functor>
+struct MaybeIfImpl {
+	typedef typename RemoveMaybe<R>::Type ReturnType;
+	typedef Maybe<ReturnType> ResultType;
+	
+	static ResultType maybe_if(Maybe<T>& maybe, Functor function) {
+		if (maybe) return function(*maybe);
+		return ResultType();
+	}
+	
+	static ResultType maybe_if(const Maybe<T>& maybe, Functor function) {
+		if (maybe) return function(*maybe);
+		return ResultType();
+	}
+};
+
+template <typename T, typename Functor>
+struct MaybeIf {
+	typedef typename std::result_of<Functor(T&)>::type ReturnType;
+	typedef MaybeIfImpl<T, ReturnType, Functor> Impl;
+	typedef typename Impl::ResultType ResultType;
+	
+	static ResultType maybe_if(Maybe<T>& maybe, Functor function) {
+		return Impl::maybe_if(maybe, function);
+	}
+	
+	static ResultType maybe_if(const Maybe<T>& maybe, Functor function) {
+		return Impl::maybe_if(maybe, function);
+	}
+};
+
+template <typename T, typename Functor>
+typename MaybeIf<T,Functor>::ResultType
+maybe_if(Maybe<T>& maybe, Functor function) {
+	return MaybeIf<T,Functor>::maybe_if(maybe, function);
+}
+
+template <typename T, typename Functor>
+typename MaybeIf<T,Functor>::ResultType
+maybe_if(const Maybe<T>& maybe, Functor function) {
+	return MaybeIf<T,Functor>::maybe_if(maybe, function);
+}
+
 #endif /* end of include guard: MAYBE_HPP_8R2MUT0P */
