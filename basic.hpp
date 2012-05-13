@@ -40,6 +40,26 @@ struct RemoveConstRef {
 	typedef typename std::remove_const<typename std::remove_reference<T>::type>::type Type;
 };
 
+template <typename U>
+struct IsCopyConstructibleNonRef {
+	static const bool Value = std::is_copy_constructible<typename RemoveConstRef<U>::Type>::value;
+};
+
+template <typename U>
+struct IsCopyAssignableNonRef {
+	static const bool Value = std::is_copy_assignable<typename RemoveConstRef<U>::Type>::value;
+};
+
+template <typename U>
+struct IsMoveConstructibleNonRef {
+	static const bool Value = std::is_move_constructible<typename RemoveConstRef<U>::Type>::value;
+};
+
+template <typename U>
+struct IsMoveAssignableNonRef {
+	static const bool Value = std::is_move_assignable<typename RemoveConstRef<U>::Type>::value;
+};
+
 template <typename T>
 void destruct(T* ptr) {
 	ptr->~T();
