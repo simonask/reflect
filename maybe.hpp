@@ -11,7 +11,7 @@ template <typename T, typename R, typename Functor> struct MaybeIfImpl;
 template <typename T>
 class Maybe {
 public:
-	Maybe() : ptr_(nullptr) {}
+	Maybe();
 	Maybe(const Maybe<T>& other);
 	Maybe(Maybe<T>&& other);
 	Maybe(const T& other);
@@ -24,7 +24,8 @@ public:
 	
 	void clear();
 	
-	explicit operator bool() const { return get() != nullptr; }
+	bool is_set() const { return *is_set_ptr() != 0; }
+	explicit operator bool() const { return is_set(); }
 	
 	template <typename Functor>
 	bool otherwise(Functor functor) {
@@ -35,47 +36,56 @@ public:
 private:
 	template <typename U, typename R, typename Functor> friend struct MaybeIfImpl;
 	
-	const T* get() const { return ptr_; }
-	T* get() { return ptr_; }
+	const T* get() const { return is_set() ? memory() : nullptr; }
+	T* get() { return is_set() ? memory() : nullptr; }
 	T* operator->() { return get(); }
 	const T* operator->() const { return get(); }
 	T& operator*() { return *get(); }
 	const T& operator*() const { return *get(); }
 	
+	static const size_t StorageSize = sizeof(T) + 1; // T + is_set byte
+	static const size_t Alignment = std::alignment_of<T>::value;
+	typedef typename std::aligned_storage<StorageSize, Alignment>::type StorageType;
 	
-	T* ptr_;
-	struct Placeholder {
-		byte _[sizeof(T)];
-	};
-	Placeholder memory_;
+	StorageType memory_;
 	
 	const T* memory() const { return reinterpret_cast<const T*>(&memory_); }
 	T* memory() { return reinterpret_cast<T*>(&memory_); }
+	const byte* is_set_ptr() const { return reinterpret_cast<const byte*>(&memory_ + sizeof(T)); }
+	byte* is_set_ptr() { return reinterpret_cast<byte*>(&memory_ + sizeof(T)); }
+	
+	void set(bool b) {
+		if (b) *is_set_ptr() = 1;
+		else   *is_set_ptr() = 0;
+	}
 	
 	template <typename U = T>
 	typename std::enable_if<IsCopyConstructibleNonRef<U>::Value && IsCopyAssignableNonRef<U>::Value>::type
 	assign(const T& by_copy) {
-		if (ptr_ != nullptr) {
+		if (is_set()) {
 			*memory() = by_copy;
 		} else {
-			ptr_ = ::new(memory()) T(by_copy);
+			::new(memory()) T(by_copy);
+			set(true);
 		}
 	}
 	
 	template <typename U = T>
 	typename std::enable_if<IsCopyConstructibleNonRef<U>::Value && !IsCopyAssignableNonRef<U>::Value>::type
 	assign(const T& by_copy) {
-		if (ptr_ != nullptr) {
+		if (is_set()) {
 			clear();
 		}
-		ptr_ = ::new(memory()) T(by_copy);
+		::new(memory()) T(by_copy);
+		set(true);
 	}
 	
 	template <typename U = T>
 	typename std::enable_if<!IsCopyConstructibleNonRef<U>::Value && IsCopyAssignableNonRef<U>::Value>::type
 	assign(const T& by_copy) {
-		if (ptr_ == nullptr) {
-			ptr_ = ::new(memory()) T;
+		if (!is_set()) {
+			::new(memory()) T;
+			set(true);
 		}
 		*memory() = by_copy;
 	}
@@ -83,50 +93,62 @@ private:
 	template <typename U = T>
 	typename std::enable_if<IsMoveConstructibleNonRef<U>::Value && IsMoveAssignableNonRef<U>::Value>::type
 	assign(T&& by_move) {
-		if (ptr_ != nullptr) {
+		if (is_set()) {
 			*memory() = std::move(by_move);
 		} else {
-			ptr_ = ::new(memory()) T(std::move(by_move));
+			::new(memory()) T(std::move(by_move));
+			set(true);
 		}
 	}
 	
 	template <typename U = T>
 	typename std::enable_if<IsMoveConstructibleNonRef<U>::Value && !IsMoveAssignableNonRef<U>::Value>::type
 	assign(T&& by_move) {
-		if (ptr_ != nullptr) {
+		if (is_set()) {
 			clear();
 		}
-		ptr_ = ::new(memory()) T(std::move(by_move));
+		::new(memory()) T(std::move(by_move));
+		set(true);
 	}
 	
 	template <typename U = T>
 	typename std::enable_if<!IsMoveConstructibleNonRef<U>::Value && IsMoveAssignableNonRef<U>::Value>::type
 	assign(T&& by_move) {
-		if (ptr_ == nullptr) {
-			ptr_ = ::new(memory()) T;
+		if (!is_set()) {
+			::new(memory()) T;
+			set(true);
 		}
 		*memory() = std::move(by_move);
 	}
 };
 
 template <typename T>
-Maybe<T>::Maybe(const Maybe<T>& other) : ptr_(nullptr) {
+Maybe<T>::Maybe() {
+	set(false);
+}
+
+template <typename T>
+Maybe<T>::Maybe(const Maybe<T>& other) {
+	set(false);
 	if (other) assign(*other);
 }
 
 template <typename T>
-Maybe<T>::Maybe(Maybe<T>&& other) : ptr_(nullptr) {
+Maybe<T>::Maybe(Maybe<T>&& other) {
+	set(false);
 	if (other) assign(std::move(*other));
 	other.clear();
 }
 
 template <typename T>
-Maybe<T>::Maybe(const T& other) : ptr_(nullptr) {
+Maybe<T>::Maybe(const T& other) {
+	set(false);
 	assign(other);
 }
 
 template <typename T>
-Maybe<T>::Maybe(T&& other) : ptr_(nullptr) {
+Maybe<T>::Maybe(T&& other) {
+	set(false);
 	assign(std::move(other));
 }
 
@@ -158,9 +180,9 @@ Maybe<T>& Maybe<T>::operator=(T&& other) {
 
 template <typename T>
 void Maybe<T>::clear() {
-	if (ptr_ != nullptr) {
+	if (is_set()) {
 		memory()->~T();
-		ptr_ = nullptr;
+		set(false);
 	}
 }
 
