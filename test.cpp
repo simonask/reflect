@@ -55,7 +55,6 @@ BEGIN_TYPE_INFO(Bar)
 	signal(&Bar::when_something_happens, "when_something_happens", "La la la");
 END_TYPE_INFO()
 
-
 int main (int argc, char const *argv[])
 {
 	TestUniverse universe;
@@ -113,6 +112,9 @@ int main (int argc, char const *argv[])
 	maybe_if(m2, [](int b) {
 		std::cout << "Added int: " << b << '\n';
 	});
+	
+	auto function = [](int n) { std::cout << n << '\n'; };
+	maybe_if(m2, [](int n) { return (std::cout << n << '\n', n); });
 	
 	return 0;
 }
