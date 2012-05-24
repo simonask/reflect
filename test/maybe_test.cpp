@@ -242,7 +242,7 @@ void test_maybe_if() {
 	
 #if HAS_LAMBDAS
 	{
-		bool b = maybe_if(yes, [](int) { });
+		bool b = yes.map([](int) { });
 		ASSERT(b);
 		b = maybe_if(no, [](int) {});
 		ASSERT(!b);
@@ -254,10 +254,22 @@ void test_maybe_if() {
 			void operator()(int) {}
 		};
 		
-		bool b = maybe_if(yes, F());
+		bool b = yes.map(F());
 		ASSERT(b);
 		b = maybe_if(no, F());
 		ASSERT(!b);
+	}
+	
+	// Test non-Maybe option types
+	{
+		int n = 123;
+		int* p = &n;
+		auto m = maybe_if(p, [](int it) { return it; });
+		ASSERT(m);
+		maybe_if(m, [&](int it) { ASSERT(it == n); });
+		p = nullptr;
+		m = maybe_if(p, [](int it) { return it; });
+		ASSERT(!m);
 	}
 }
 

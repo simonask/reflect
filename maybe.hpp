@@ -6,6 +6,8 @@
 #include <type_traits>
 #include <new>
 
+template <typename M, typename ReturnType> struct MaybeIfImpl;
+
 template <typename T>
 class Maybe {
 public:
@@ -25,15 +27,34 @@ public:
 	bool is_set() const { return *is_set_ptr() != 0; }
 	explicit operator bool() const { return is_set(); }
 	
+	// For use with decltype(...)
+	T& infer_value_type() { ASSERT(false); return *((T*)nullptr); }
+	const T& infer_value_type() const { ASSERT(false); return *((T*)nullptr); }
+	
 	template <typename Functor>
 	bool otherwise(Functor functor) {
-		bool b = *this;
+		bool b = is_set();
+		if (!b) functor();
+		return b;
+	}
+	template <typename Functor>
+	bool otherwise(Functor functor) const {
+		bool b = is_set();
 		if (!b) functor();
 		return b;
 	}
 	
-	T& infer_value_type() { ASSERT(false); return *((T*)nullptr); }
-	const T& infer_value_type() const { ASSERT(false); return *((T*)nullptr); }
+	// Same as 'maybe_if', but with FP terminology a la Scala.
+	template <typename Functor>
+	auto map(Functor functor)
+	-> typename MaybeIfImpl<Maybe<T>, decltype(functor(infer_value_type()))>::ResultType {
+		return MaybeIfImpl<Maybe<T>, decltype(functor(infer_value_type()))>::maybe_if(*this, functor);
+	}
+	template <typename Functor>
+	auto map(Functor functor) const
+	-> typename MaybeIfImpl<Maybe<T>, decltype(functor(infer_value_type()))>::ResultType {
+		return MaybeIfImpl<Maybe<T>, decltype(functor(infer_value_type()))>::maybe_if(*this, functor);
+	}
 private:
 	template <typename M, typename ReturnType> friend struct MaybeIfImpl;
 	
@@ -261,6 +282,20 @@ auto maybe_if(const M& m, Functor function)
 -> typename MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::ResultType
 {
 	return MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::maybe_if(m, function);
+}
+
+template <typename M, typename Functor>
+auto maybe_if(M& m, Functor function)
+-> typename MaybeIfImpl<M, decltype(function(*m))>::ResultType
+{
+	return MaybeIfImpl<M, decltype(function(*m))>::maybe_if(m, function);
+}
+
+template <typename M, typename Functor>
+auto maybe_if(const M& m, Functor function)
+-> typename MaybeIfImpl<M, decltype(function(*m))>::ResultType
+{
+	return MaybeIfImpl<M, decltype(function(*m))>::maybe_if(m, function);
 }
 
 #endif /* end of include guard: MAYBE_HPP_8R2MUT0P */
