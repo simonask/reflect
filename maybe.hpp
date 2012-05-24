@@ -52,8 +52,8 @@ public:
 	}
 	template <typename Functor>
 	auto map(Functor functor) const
-	-> typename MaybeIfImpl<Maybe<T>, decltype(functor(infer_value_type()))>::ResultType {
-		return MaybeIfImpl<Maybe<T>, decltype(functor(infer_value_type()))>::maybe_if(*this, functor);
+	-> typename MaybeIfImpl<const Maybe<T>, decltype(functor(infer_value_type()))>::ResultType {
+		return MaybeIfImpl<const Maybe<T>, decltype(functor(infer_value_type()))>::maybe_if(*this, functor);
 	}
 private:
 	template <typename M, typename ReturnType> friend struct MaybeIfImpl;
@@ -244,12 +244,6 @@ struct MaybeIfImpl<M, void> {
 		if (m) { function(*m); return true; }
 		return false;
 	}
-	
-	template <typename Functor>
-	static BooleanHolder maybe_if(const M& m, Functor function) {
-		if (m) { function(*m); return true; }
-		return false;
-	}
 };
 
 template <typename M, typename ReturnType>
@@ -261,12 +255,6 @@ struct MaybeIfImpl {
 		if (m) return function(*m);
 		return ResultType();
 	}
-	
-	template <typename Functor>
-	static ResultType maybe_if(const M& m, Functor function) {
-		if (m) return function(*m);
-		return ResultType();
-	}
 };
 
 
@@ -278,24 +266,16 @@ auto maybe_if(M& m, Functor function)
 }
 
 template <typename M, typename Functor>
-auto maybe_if(const M& m, Functor function)
--> typename MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::ResultType
-{
-	return MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::maybe_if(m, function);
-}
-
-template <typename M, typename Functor>
 auto maybe_if(M& m, Functor function)
 -> typename MaybeIfImpl<M, decltype(function(*m))>::ResultType
 {
 	return MaybeIfImpl<M, decltype(function(*m))>::maybe_if(m, function);
 }
 
-template <typename M, typename Functor>
-auto maybe_if(const M& m, Functor function)
--> typename MaybeIfImpl<M, decltype(function(*m))>::ResultType
-{
-	return MaybeIfImpl<M, decltype(function(*m))>::maybe_if(m, function);
+template <typename OutputStream, typename T>
+OutputStream& operator<<(OutputStream& os, const Maybe<T>& m) {
+	maybe_if(m, [&](const T& it) { os << it; }).otherwise([&]() { os << "(none)"; });
+	return os;
 }
 
 #endif /* end of include guard: MAYBE_HPP_8R2MUT0P */
