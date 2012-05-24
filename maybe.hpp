@@ -6,8 +6,6 @@
 #include <type_traits>
 #include <new>
 
-template <typename T, typename R, typename Functor> struct MaybeIfImpl;
-
 template <typename T>
 class Maybe {
 public:
@@ -33,8 +31,11 @@ public:
 		if (!b) functor();
 		return b;
 	}
+	
+	T& infer_value_type() { ASSERT(false); return *((T*)nullptr); }
+	const T& infer_value_type() const { ASSERT(false); return *((T*)nullptr); }
 private:
-	template <typename U, typename R, typename Functor> friend struct MaybeIfImpl;
+	template <typename M, typename ReturnType> friend struct MaybeIfImpl;
 	
 	const T* get() const { return is_set() ? memory() : nullptr; }
 	T* get() { return is_set() ? memory() : nullptr; }
@@ -51,8 +52,8 @@ private:
 	
 	const T* memory() const { return reinterpret_cast<const T*>(&memory_); }
 	T* memory() { return reinterpret_cast<T*>(&memory_); }
-	const byte* is_set_ptr() const { return reinterpret_cast<const byte*>(&memory_ + sizeof(T)); }
-	byte* is_set_ptr() { return reinterpret_cast<byte*>(&memory_ + sizeof(T)); }
+	const byte* is_set_ptr() const { return reinterpret_cast<const byte*>(&memory_) + sizeof(T); }
+	byte* is_set_ptr() { return reinterpret_cast<byte*>(&memory_) + sizeof(T); }
 	
 	void set(bool b) {
 		if (b) *is_set_ptr() = 1;
@@ -206,63 +207,60 @@ struct BooleanHolder {
 		if (!value_) functor();
 		return value_;
 	}
+	
+	operator bool() const { return value_; }
 };
 
-template <typename T, typename Functor>
-struct MaybeIfImpl<T, void, Functor> {
+template <typename M, typename ReturnType>
+struct MaybeIfImpl;
+
+template <typename M>
+struct MaybeIfImpl<M, void> {
 	typedef BooleanHolder ResultType;
 	
-	static BooleanHolder maybe_if(Maybe<T>& maybe, Functor function) {
-		if (maybe) { function(*maybe); return true; }
+	template <typename Functor>
+	static BooleanHolder maybe_if(M& m, Functor function) {
+		if (m) { function(*m); return true; }
 		return false;
 	}
-	static BooleanHolder maybe_if(const Maybe<T>& maybe, Functor function) {
-		if (maybe) { function(*maybe); return true; }
+	
+	template <typename Functor>
+	static BooleanHolder maybe_if(const M& m, Functor function) {
+		if (m) { function(*m); return true; }
 		return false;
 	}
 };
 
-template <typename T, typename R, typename Functor>
+template <typename M, typename ReturnType>
 struct MaybeIfImpl {
-	typedef typename RemoveMaybe<R>::Type ReturnType;
-	typedef Maybe<ReturnType> ResultType;
+	typedef Maybe<typename RemoveMaybe<ReturnType>::Type> ResultType;
 	
-	static ResultType maybe_if(Maybe<T>& maybe, Functor function) {
-		if (maybe) return function(*maybe);
+	template <typename Functor>
+	static ResultType maybe_if(M& m, Functor function) {
+		if (m) return function(*m);
 		return ResultType();
 	}
 	
-	static ResultType maybe_if(const Maybe<T>& maybe, Functor function) {
-		if (maybe) return function(*maybe);
+	template <typename Functor>
+	static ResultType maybe_if(const M& m, Functor function) {
+		if (m) return function(*m);
 		return ResultType();
 	}
 };
 
-template <typename T, typename Functor>
-struct MaybeIf {
-	typedef typename std::result_of<Functor(T&)>::type ReturnType;
-	typedef MaybeIfImpl<T, ReturnType, Functor> Impl;
-	typedef typename Impl::ResultType ResultType;
-	
-	static ResultType maybe_if(Maybe<T>& maybe, Functor function) {
-		return Impl::maybe_if(maybe, function);
-	}
-	
-	static ResultType maybe_if(const Maybe<T>& maybe, Functor function) {
-		return Impl::maybe_if(maybe, function);
-	}
-};
 
-template <typename T, typename Functor>
-typename MaybeIf<T,Functor>::ResultType
-maybe_if(Maybe<T>& maybe, Functor function) {
-	return MaybeIf<T,Functor>::maybe_if(maybe, function);
+template <typename M, typename Functor>
+auto maybe_if(M& m, Functor function)
+-> typename MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::ResultType
+{
+	return MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::maybe_if(m, function);
 }
 
-template <typename T, typename Functor>
-typename MaybeIf<T,Functor>::ResultType
-maybe_if(const Maybe<T>& maybe, Functor function) {
-	return MaybeIf<T,Functor>::maybe_if(maybe, function);
+template <typename M, typename Functor>
+auto maybe_if(const M& m, Functor function)
+-> typename MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::ResultType
+{
+	return MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::maybe_if(m, function);
 }
 
 #endif /* end of include guard: MAYBE_HPP_8R2MUT0P */

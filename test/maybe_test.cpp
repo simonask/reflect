@@ -1,5 +1,11 @@
 #include "maybe.hpp"
 
+#if defined(__has_feature) && __has_feature(cxx_lambdas)
+#define HAS_LAMBDAS 1
+#else
+#define HAS_LAMBDAS 0
+#endif
+
 struct TrivialType {
 	TrivialType(int n = 0) : n(n) {}
 	TrivialType(const TrivialType& other) = default;
@@ -133,6 +139,128 @@ void run_test(Maybe<T>& m) {
 	if (m.get()->n != 123) exit(1);
 }
 
+static int regular_function_call_count = 0;
+
+void regular_function_byval(int) {
+	regular_function_call_count++;
+}
+
+void regular_function_byref(int&) {
+	regular_function_call_count++;
+}
+
+void regular_function_byconstref(const int&) {
+	regular_function_call_count++;
+}
+
+void test_maybe_if() {
+	Maybe<int> yes = 123;
+	Maybe<int> no;
+	
+#if HAS_LAMBDAS
+	// Test call with lambda
+	{
+		int count = 0;
+		maybe_if(yes, [&](int it) { ++count; });
+		maybe_if(yes, [&](int& it) { ++count; });
+		maybe_if(yes, [&](const int& it) { ++count; });
+		ASSERT(count == 3);
+		maybe_if(no, [](int) {});
+		maybe_if(no, [](int&) {});
+		maybe_if(no, [](const int&) {});
+		ASSERT(count == 3);
+	}
+#endif
+
+	// Test call with regular function
+	{
+		regular_function_call_count = 0;
+		maybe_if(yes, regular_function_byval);
+		maybe_if(yes, regular_function_byref);
+		maybe_if(yes, regular_function_byconstref);
+		ASSERT(regular_function_call_count == 3);
+		maybe_if(no, regular_function_byval);
+		maybe_if(no, regular_function_byref);
+		maybe_if(no, regular_function_byconstref);
+		ASSERT(regular_function_call_count == 3);
+	}
+	
+	// Test call with function object
+	{
+		struct ByVal {
+			int& count;
+			ByVal(int& count) : count(count) {}
+			void operator()(int) { count++; }
+		};
+		
+		struct ByRef {
+			int& count;
+			ByRef(int& count) : count(count) {}
+			void operator()(int&) { count++; }
+		};
+		
+		struct ByConstRef {
+			int& count;
+			ByConstRef(int& count) : count(count) {}
+			void operator()(const int&) { count++; }
+		};
+		
+		int count = 0;
+		maybe_if(yes, ByVal(count));
+		maybe_if(yes, ByRef(count));
+		maybe_if(yes, ByConstRef(count));
+		ASSERT(count == 3);
+		maybe_if(no, ByVal(count));
+		maybe_if(no, ByRef(count));
+		maybe_if(no, ByConstRef(count));
+		ASSERT(count == 3);
+	}
+	
+	// Test return values
+	
+#if HAS_LAMBDAS
+	{
+		Maybe<int> m = maybe_if(yes, [](int) { return 1; });
+		ASSERT(m.is_set());
+		m = maybe_if(no, [](int) { return 1; });
+		ASSERT(!m.is_set());
+	}
+#endif
+
+	{
+		struct F {
+			int operator()(int) { return 1; }
+		};
+		
+		Maybe<int> m = maybe_if(yes, F());
+		ASSERT(m.is_set());
+		m = maybe_if(no, F());
+		ASSERT(!m.is_set());
+	}
+	
+	// Test boolean return values for void
+	
+#if HAS_LAMBDAS
+	{
+		bool b = maybe_if(yes, [](int) { });
+		ASSERT(b);
+		b = maybe_if(no, [](int) {});
+		ASSERT(!b);
+	}
+#endif
+
+	{
+		struct F {
+			void operator()(int) {}
+		};
+		
+		bool b = maybe_if(yes, F());
+		ASSERT(b);
+		b = maybe_if(no, F());
+		ASSERT(!b);
+	}
+}
+
 int main (int argc, char const *argv[])
 {
 	{
@@ -232,6 +360,8 @@ int main (int argc, char const *argv[])
 		NoDefaultConstructor v(456);
 		m = v;
 	}
+	
+	test_maybe_if();
 	
 	return 0;
 }

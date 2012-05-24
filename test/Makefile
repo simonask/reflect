@@ -4,6 +4,8 @@ COMPILE = $(CXX) $(CXXFLAGS)
 
 maybe_test: maybe_test.cpp ../maybe.hpp
 	$(COMPILE) -o maybe_test maybe_test.cpp
+
+test:
 	./maybe_test
 
 clean:
