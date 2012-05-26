@@ -33,9 +33,7 @@ struct TestUniverse : IUniverse {
 	ObjectPtr<> create_object(const DerivedType* type, std::string) override;
 	ObjectPtr<> create_root(const DerivedType* type, std::string) override;
 	ObjectPtr<> get_object(const std::string& id) const override {
-		auto it = object_map_.find(id);
-		if (it != object_map_.end()) return it->second;
-		return nullptr;
+		return find_or(object_map_, id, nullptr);
 	}
 	const std::string& get_id(ObjectPtr<const Object> object) const override;
 	bool rename_object(ObjectPtr<> object, std::string) override;

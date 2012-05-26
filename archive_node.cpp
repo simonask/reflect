@@ -35,12 +35,7 @@ ArchiveNode& ArchiveNode::operator[](size_t idx) {
 
 const ArchiveNode& ArchiveNode::operator[](const std::string& key) const {
 	ASSERT(type() == Type::Map);
-	auto it = map_.find(key);
-	if (it == map_.end()) {
-		return archive_.empty();
-	} else {
-		return *it->second;
-	}
+	return *find_or(map_, key, &archive_.empty());
 }
 
 ArchiveNode& ArchiveNode::operator[](const std::string& key) {
