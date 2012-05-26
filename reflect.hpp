@@ -6,6 +6,7 @@
 #include "struct_type.hpp"
 #include "attribute.hpp"
 #include "signal.hpp"
+#include <algorithm>
 
 template <typename T>
 struct StructTypeBuilder {
@@ -18,14 +19,26 @@ struct StructTypeBuilder {
 	Self& description(std::string d) { description_ = std::move(d); return *this; }
 	Self& super(const StructTypeBase* t) { super_ = t; return *this; }
 	
+	void check_attribute_name_(const std::string& name) {
+		const auto reserved_names = {"class", "aspects"};
+		for (auto it: reserved_names) {
+			if (name == it) {
+				fprintf(stderr, "The attribute name '%s' is reserved.\n", name.c_str());
+				ASSERT(false);
+			}
+		}
+	}
+	
 	template <typename MemberType>
 	Self& property(MemberType T::* member, std::string name, std::string description/*, MemberType default_value = MemberType()*/) {
+		check_attribute_name_(name);
 		attributes_.push_back(new MemberAttribute<T, MemberType>(std::move(name), std::move(description), member));
 		return *this;
 	}
 	
 	template <typename GetterReturnType, typename SetterArgumentType, typename SetterReturnType>
 	Self& property(GetterReturnType (T::*getter)() const, SetterReturnType (T::*setter)(SetterArgumentType), std::string name, std::string description) {
+		check_attribute_name_(name);
 		typedef typename RemoveConstRef<GetterReturnType>::Type RawType;
 		attributes_.push_back(new MethodAttribute<T, RawType, GetterReturnType, SetterArgumentType, SetterReturnType>(std::move(name), std::move(description), getter, setter));
 		return *this;
