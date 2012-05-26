@@ -73,6 +73,13 @@ struct MemberAttribute : AttributeForObjectOfType<ObjectType, MemberType, const 
 		object.*member_ = std::move(value);
 	}
 	
+	// override deserialize_attribute so we can deserialize in-place
+	bool deserialize_attribute(ObjectType* object, const ArchiveNode& node) const {
+		MemberType* ptr = &(object->*member_);
+		this->type()->deserialize(reinterpret_cast<byte*>(ptr), node);
+		return true; // eh...
+	}
+	
 	MemberPointer member_;
 };
 

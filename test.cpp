@@ -13,11 +13,13 @@
 #include "json_archive.hpp"
 #include "universe.hpp"
 #include "maybe.hpp"
+#include "maybe_type.hpp"
+#include "type_registry.hpp"
 
 struct Foo : Object {
 	REFLECT;
 	
-	int foo;
+	Maybe<int> foo;
 	void a_signal_receiver(int n) { std::cout << "Foo::a_signal_receiver: " << n << "\n"; an_empty_signal(); }
 	Signal<int32> after_signal_received;
 	Signal<> an_empty_signal;
@@ -57,6 +59,10 @@ END_TYPE_INFO()
 
 int main (int argc, char const *argv[])
 {
+	TypeRegistry::add<Object>();
+	TypeRegistry::add<Foo>();
+	TypeRegistry::add<Bar>();
+	
 	TestUniverse universe;
 	
 	auto t = new CompositeType("FooBar");
@@ -66,55 +72,19 @@ int main (int argc, char const *argv[])
 	
 	ObjectPtr<> p = universe.create_object(t, "Composite FooBar");
 	ObjectPtr<Bar> b = universe.create<Bar>("Bar");
-	std::cout << "p: " << p.get() << '\n';
-	std::cout << "b: " << b.get() << '\n';
 	
-	ObjectPtr<Foo> foo = aspect_cast<Foo>(p);
 	ObjectPtr<Bar> bar = aspect_cast<Bar>(p);
-	bar->foo = foo;
-	ASSERT(bar->foo != nullptr);
-	
+	ObjectPtr<Foo> foo = aspect_cast<Foo>(p);
 	bar->when_something_happens.connect(foo, &Foo::a_signal_receiver);
 	bar->when_something_happens(bar->bar);
 	
-	if (foo != nullptr) {
-		std::cout << "Foo (" << foo << "): " << foo->foo << '\n';
-		ObjectPtr<> comp = aspect_cast(foo, t);
-		if (comp != nullptr) {
-			std::cout << "Composite: " << comp << '\n';
-		}
-	}
-	if (bar != nullptr) {
-		std::cout << "Bar (" << bar << "): " << bar->bar << '\n';
-		bar->list.push_back(1);
-		bar->list.push_back(2);
-		bar->list.push_back(3);
-		ObjectPtr<> comp = aspect_cast(foo, t);
-		if (comp != nullptr) {
-			std::cout << "Composite: " << comp << '\n';
-		}
-	}
-	
 	JSONArchive json;
 	json.serialize(p, universe);
-	ASSERT(bar->foo != nullptr);
 	json.write(std::cout);
 	
-	Maybe<int> m;
-	maybe_if(m, [](int n) { 
-		std::cout << "An int: " << n << '\n';
-	}).otherwise([&]() {
-		std::cout << "Setting m...\n";
-		m = 123;
-	});
-	
-	auto m2 = maybe_if(m, [](int a) { return a + 567; });
-	maybe_if(m2, [](int b) {
-		std::cout << "Added int: " << b << '\n';
-	});
-	
-	auto function = [](int n) { std::cout << n << '\n'; };
-	maybe_if(m2, [](int n) { return (std::cout << n << '\n', n); });
-	
+	TestUniverse universe2;
+	ObjectPtr<> root = json.deserialize(universe2);
+	ObjectPtr<Bar> bar2 = aspect_cast<Bar>(root);
+	bar2->when_something_happens(bar2->bar);
 	return 0;
 }

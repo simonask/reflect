@@ -9,6 +9,7 @@
 
 #include <functional>
 #include <sstream>
+#include <iostream> // TODO: Get rid of.
 
 struct SlotAttributeBase;
 struct Object;
@@ -18,6 +19,7 @@ struct SignalTypeBase;
 template <typename... Args> struct SignalType;
 
 struct SlotInvokerBase {
+	virtual ~SlotInvokerBase() {}
 	virtual Object* receiver() const = 0;
 	virtual const SlotAttributeBase* slot() const = 0;
 };
@@ -40,14 +42,15 @@ public:
 	void connect(ObjectPtr<const Receiver> object, R(Receiver::*method)(Args...) const) { connect(object.get(), method); }
 	template <typename R>
 	void connect(std::function<R(Args...)>);
+	bool connect(ObjectPtr<> receiver, const SlotAttributeBase* slot);
 	
 	void invoke(Args...) const;
 	void operator()(Args... args) const { invoke(std::forward<Args>(args)...); }
 	
 	size_t num_connections() const { return invokers_.size(); }
-	const SlotInvoker<Args...>* connection_at(size_t idx) const { return static_cast<SlotInvoker<Args...>*>(invokers_[idx]); }
+	const SlotInvoker<Args...>* connection_at(size_t idx) const { return invokers_[idx]; }
 private:
-	Array<SlotInvokerBase*> invokers_;
+	Array<SlotInvoker<Args...>*> invokers_;
 };
 
 struct SignalTypeBase : Type {
@@ -148,6 +151,7 @@ protected:
 template <typename T>
 struct SlotForObject {
 	virtual ~SlotForObject() {}
+	virtual const std::string& slot_name() const = 0;
 };
 
 template <typename... Args>
@@ -161,7 +165,24 @@ struct SlotWithSignature : SlotAttributeBase {
 	std::string signature_description() const override {
 		return get_signature_description<Args...>();
 	}
+	
+	virtual SlotInvoker<Args...>* create_invoker(ObjectPtr<>) const = 0;
 };
+
+template <typename... Args>
+bool Signal<Args...>::connect(ObjectPtr<> ptr, const SlotAttributeBase* slot) {
+	auto slot_with_signature = dynamic_cast<const SlotWithSignature<Args...>*>(slot);
+	if (slot_with_signature == nullptr) {
+		return false;
+	}
+	auto invoker = slot_with_signature->create_invoker(ptr);
+	if (invoker == nullptr) {
+		delete invoker;
+		return false;
+	}
+	invokers_.push_back(invoker);
+	return true;
+}
 
 template <typename T, typename R, typename... Args>
 struct SlotAttribute : SlotForObject<T>, SlotWithSignature<Args...> {
@@ -172,12 +193,37 @@ struct SlotAttribute : SlotForObject<T>, SlotWithSignature<Args...> {
 	FunctionType function_;
 	
 	FunctionType method() const { return function_; }
+	
+	SlotInvoker<Args...>* create_invoker(ObjectPtr<> base_ptr) const {
+		ObjectPtr<T> ptr = aspect_cast<T>(base_ptr);
+		if (ptr == nullptr) return nullptr;
+		return new MemberSlotInvoker<T, R, Args...>(ptr.get(), function_);
+	}
+	
+	const std::string& slot_name() const { return this->name(); }
 };
 
 template <typename... Args>
 void SignalType<Args...>::deserialize(byte* place, const ArchiveNode& node) const {
-	// XXX TODO!
-	ASSERT(false);
+	Signal<Args...>* signal = reinterpret_cast<Signal<Args...>*>(place);
+	if (node.is_array()) {
+		for (size_t i = 0; i < node.array_size(); ++i) {
+			const ArchiveNode& connection = node[i];
+			if (connection.is_map()) {
+				const ArchiveNode& receiver_node = connection["receiver"];
+				const ArchiveNode& slot_node = connection["slot"];
+				std::string receiver;
+				std::string slot;
+				if (receiver_node.get(receiver) && slot_node.get(slot)) {
+					node.register_signal_for_deserialization(signal, receiver, slot);
+				} else {
+					std::cerr << "WARNING: Invalid signal connection.";
+				}
+			} else {
+				std::cerr << "WARNING: Non-map signal connection node. Did you forget to write a scene upgrader?\n";
+			}
+		}
+	}
 }
 
 template <typename... Args>

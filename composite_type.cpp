@@ -90,7 +90,7 @@ void CompositeType::construct(byte* place, IUniverse& universe) const {
 		aspect->construct(place + offset, universe);
 		Object* subobject = reinterpret_cast<Object*>(place + offset);
 		subobject->set_object_offset__(offset);
-		subobject->set_object_id(aspect->name());
+		subobject->set_object_id(aspect->name()); // might be renamed later by deserialization
 		offset += aspect->size();
 	}
 }
@@ -127,7 +127,7 @@ void CompositeType::deserialize(byte* place, const ArchiveNode& node) const {
 void CompositeType::serialize(const byte* place, ArchiveNode& node) const {
 	ASSERT(frozen_);
 	base_type()->serialize(place, node);
-	node["class"] = name();
+	node["class"] = base_type()->name();
 	
 	size_t offset = base_type()->size();
 	const byte* p = place;

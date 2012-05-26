@@ -60,10 +60,23 @@ void ArchiveNode::register_reference_for_serialization_impl(SerializeReferenceBa
 	archive_.register_reference_for_serialization(ref);
 }
 
+void ArchiveNode::register_signal_for_deserialization_impl(DeserializeSignalBase* sig) const {
+	archive_.register_signal_for_deserialization(sig);
+}
+
 Object* DeserializeReferenceBase::get_object(IUniverse& universe) const {
 	return universe.get_object(object_id_).get();
 }
 
 std::string SerializeReferenceBase::get_id(const IUniverse& universe, Object* obj) const {
 	return universe.get_id(obj);
+}
+
+Object* DeserializeSignalBase::get_object(const IUniverse& universe) const {
+	return universe.get_object(receiver_id_).get();
+}
+
+const SlotAttributeBase* DeserializeSignalBase::get_slot(Object* object) const {
+	const DerivedType* type = get_type(object);
+	return type->get_slot_by_name(slot_id_);
 }

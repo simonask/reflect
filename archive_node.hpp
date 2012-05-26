@@ -4,6 +4,7 @@
 
 #include <string>
 #include <map>
+#include <iostream>
 
 #include "archive_node_type.hpp"
 #include "type.hpp"
@@ -11,7 +12,10 @@
 struct Archive;
 struct DeserializeReferenceBase;
 struct SerializeReferenceBase;
+struct DeserializeSignalBase;
 struct IUniverse;
+struct SlotAttributeBase;
+struct DerivedType;
 
 struct ArchiveNode {
 	typedef ArchiveNodeType::Type Type;
@@ -66,6 +70,8 @@ struct ArchiveNode {
 	void register_reference_for_deserialization(T& reference) const;
 	template <typename T>
 	void register_reference_for_serialization(const T& reference);
+	template <typename T>
+	void register_signal_for_deserialization(T* signal, std::string receiver_id, std::string slot_id) const;
 protected:
 	explicit ArchiveNode(Archive& archive, Type t = Type::Empty) : archive_(archive), type_(t) {}
 protected:
@@ -86,6 +92,7 @@ protected:
 	
 	void register_reference_for_deserialization_impl(DeserializeReferenceBase* ref) const;
 	void register_reference_for_serialization_impl(SerializeReferenceBase* ref);
+	void register_signal_for_deserialization_impl(DeserializeSignalBase* sig) const;
 };
 
 inline void ArchiveNode::set(float32 f) {
@@ -269,6 +276,38 @@ private:
 template <typename T>
 void ArchiveNode::register_reference_for_serialization(const T& reference) {
 	register_reference_for_serialization_impl(new SerializeReference<T>(*this, reference));
+}
+
+struct DeserializeSignalBase {
+public:
+	virtual void perform(const IUniverse&) const = 0;
+protected:
+	DeserializeSignalBase(std::string receiver, std::string slot) : receiver_id_(std::move(receiver)), slot_id_(std::move(slot)) {}
+	std::string receiver_id_;
+	std::string slot_id_;
+	
+	Object* get_object(const IUniverse&) const;
+	const SlotAttributeBase* get_slot(Object*) const;
+};
+
+template <typename T>
+struct DeserializeSignal : DeserializeSignalBase {
+	DeserializeSignal(T* signal, std::string receiver, std::string slot) : DeserializeSignalBase(std::move(receiver), std::move(slot)), signal_(signal) {}
+	
+	void perform(const IUniverse& universe) const {
+		Object* object = get_object(universe);
+		if (object == nullptr) return;
+		const SlotAttributeBase* slot = get_slot(object);
+		if (slot == nullptr) return;
+		signal_->connect(object, slot);
+	}
+private:
+	T* signal_;
+};
+
+template <typename T>
+void ArchiveNode::register_signal_for_deserialization(T* signal, std::string receiver, std::string slot) const {
+	register_signal_for_deserialization_impl(new DeserializeSignal<T>(signal, std::move(receiver), std::move(slot)));
 }
 
 #endif /* end of include guard: ARCHIVE_NODE_HPP_EP8GSONT */

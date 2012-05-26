@@ -12,6 +12,7 @@
 
 struct DeserializeReferenceBase;
 struct SerializeReferenceBase;
+struct DeserializeSignalBase;
 struct ArchiveNode;
 struct IUniverse;
 
@@ -27,12 +28,17 @@ struct Archive {
 	virtual const ArchiveNode& empty() const = 0;
 	
 	void serialize(ObjectPtr<> object, IUniverse& universe);
+	ObjectPtr<> deserialize(IUniverse& universe);
 	
 	void register_reference_for_deserialization(DeserializeReferenceBase* ref) { deserialize_references.push_back(ref); }
 	void register_reference_for_serialization(SerializeReferenceBase* ref) { serialize_references.push_back(ref); }
+	void register_signal_for_deserialization(DeserializeSignalBase* sig) {
+		deserialize_signals.push_back(sig);
+	}
 private:
 	Array<DeserializeReferenceBase*> deserialize_references;
 	Array<SerializeReferenceBase*> serialize_references;
+	Array<DeserializeSignalBase*> deserialize_signals;
 };
 
 #endif /* end of include guard: ARCHIVE_HPP_A0L9H8RE */

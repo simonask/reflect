@@ -10,7 +10,11 @@ struct DerivedType;
 struct StructTypeBase;
 template <typename T> struct StructType;
 
-#define REFLECT public: static const bool has_reflection__ = true; typedef StructTypeBase TypeInfoType; static const TypeInfoType* build_type_info__()
+#define REFLECT \
+	public: \
+		static const bool has_reflection__ = true; \
+		typedef StructTypeBase TypeInfoType; \
+		static const TypeInfoType* build_type_info__();
 
 template <typename T> const Type* build_type_info(); // Only used for non-reflected types.
 
@@ -77,6 +81,10 @@ template <typename T>
 typename std::enable_if<!HasReflection<T>::Value, const Type*>::type
 get_type(const T& value) {
 	return get_type<T>();
+}
+
+inline const DerivedType* get_type(Object* object) {
+	return object->object_type();
 }
 
 inline const DerivedType* get_type(const Object* object) {
