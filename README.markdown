@@ -19,9 +19,6 @@ Planned/pending features
 * YAML serialization.
 * XML serialization.
 * Built-in support for serialization of more standard library types.
-* Type-safe public serialization API.
-* Central type registry for enumeration of all types.
-* Deserialization (!).
 
 Limitations
 -----------
