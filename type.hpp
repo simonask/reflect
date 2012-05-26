@@ -13,6 +13,7 @@
 
 struct ArchiveNode;
 struct IUniverse;
+struct SlotAttributeBase;
 
 struct Type {
 	virtual void deserialize(byte* place, const ArchiveNode&) const = 0;
@@ -120,6 +121,7 @@ struct DerivedType : Type {
 	virtual const Type* type_of_element(size_t idx) const = 0;
 	virtual size_t offset_of_element(size_t idx) const = 0;
 	virtual Object* cast(const DerivedType* to, Object* o) const = 0;
+	virtual const SlotAttributeBase* get_slot_by_name(const std::string& name) const { return nullptr; }
 };
 
 // static_cast

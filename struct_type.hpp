@@ -82,6 +82,13 @@ struct StructType : StructTypeBase {
 	
 	void set_abstract(bool b) { is_abstract_ = b; }
 	bool is_abstract() const override { return is_abstract_; }
+	
+	const SlotAttributeBase* get_slot_by_name(const std::string& name) const {
+		for (auto& it: slots_) {
+			if (it->slot_name() == name) return dynamic_cast<const SlotAttributeBase*>(it);
+		}
+		return nullptr;
+	}
 protected:
 	Array<AttributeForObject<T>*> properties_;
 	Array<SlotForObject<T>*> slots_;
