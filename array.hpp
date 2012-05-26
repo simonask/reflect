@@ -53,7 +53,7 @@ private:
 };
 
 template <typename T>
-Array<T>::Array(const Array<T>& other) {
+Array<T>::Array(const Array<T>& other) : data_(nullptr), size_(0), alloc_size_(0) {
 	reserve(other.size());
 	insert(other.begin(), other.end());
 }
