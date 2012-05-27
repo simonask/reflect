@@ -3,19 +3,19 @@
 
 #include <map>
 
-#include "object.hpp"
-#include "objectptr.hpp"
-#include "reflect.hpp"
-#include "type.hpp"
-#include "composite_type.hpp"
-#include "struct_type.hpp"
-#include "array_type.hpp"
-#include "json_archive.hpp"
-#include "universe.hpp"
-#include "maybe.hpp"
-#include "maybe_type.hpp"
-#include "type_registry.hpp"
-#include "child_list.hpp"
+#include "object/object.hpp"
+#include "object/objectptr.hpp"
+#include "object/reflect.hpp"
+#include "type/type.hpp"
+#include "object/composite_type.hpp"
+#include "object/struct_type.hpp"
+#include "base/array_type.hpp"
+#include "serialization/json_archive.hpp"
+#include "object/universe.hpp"
+#include "base/maybe.hpp"
+#include "base/maybe_type.hpp"
+#include "type/type_registry.hpp"
+#include "object/child_list.hpp"
 
 struct Scene : Object {
 	REFLECT;
