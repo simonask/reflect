@@ -30,8 +30,8 @@ struct AttributeForObject {
 	virtual const Type* attribute_type() const = 0;
 	virtual const std::string& attribute_name() const = 0;
 	virtual const std::string& attribute_description() const = 0;
-	virtual bool deserialize_attribute(T* object, const ArchiveNode&) const = 0;
-	virtual bool serialize_attribute(const T* object, ArchiveNode&) const = 0;
+	virtual bool deserialize_attribute(T* object, const ArchiveNode&, IUniverse&) const = 0;
+	virtual bool serialize_attribute(const T* object, ArchiveNode&, IUniverse&) const = 0;
 };
 
 template <typename ObjectType, typename MemberType, typename GetterType = MemberType>
@@ -45,16 +45,16 @@ struct AttributeForObjectOfType : AttributeForObject<ObjectType>, Attribute<Memb
 	const std::string& attribute_name() const { return this->name_; }
 	const std::string& attribute_description() const { return this->description_; }
 	
-	bool deserialize_attribute(ObjectType* object, const ArchiveNode& node) const {
+	bool deserialize_attribute(ObjectType* object, const ArchiveNode& node, IUniverse& universe) const {
 		MemberType value;
-		this->type()->deserialize(reinterpret_cast<byte*>(&value), node);
+		this->type()->deserialize(reinterpret_cast<byte*>(&value), node, universe);
 		set(*object, std::move(value));
 		return true; // eh...
 	}
 	
-	bool serialize_attribute(const ObjectType* object, ArchiveNode& node) const {
+	bool serialize_attribute(const ObjectType* object, ArchiveNode& node, IUniverse& universe) const {
 		GetterType value = get(*object);
-		this->type()->serialize(reinterpret_cast<const byte*>(&value), node);
+		this->type()->serialize(reinterpret_cast<const byte*>(&value), node, universe);
 		return true; // eh...
 	}
 };
@@ -74,9 +74,9 @@ struct MemberAttribute : AttributeForObjectOfType<ObjectType, MemberType, const 
 	}
 	
 	// override deserialize_attribute so we can deserialize in-place
-	bool deserialize_attribute(ObjectType* object, const ArchiveNode& node) const {
+	bool deserialize_attribute(ObjectType* object, const ArchiveNode& node, IUniverse& universe) const {
 		MemberType* ptr = &(object->*member_);
-		this->type()->deserialize(reinterpret_cast<byte*>(ptr), node);
+		this->type()->deserialize(reinterpret_cast<byte*>(ptr), node, universe);
 		return true; // eh...
 	}
 	

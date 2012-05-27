@@ -7,9 +7,10 @@
 #include "type_registry.hpp"
 #include "composite_type.hpp"
 #include "universe.hpp"
+#include "deserialize_object.hpp"
 
 void Archive::serialize(ObjectPtr<> object, IUniverse& universe) {
-	::serialize(*object, root());
+	::serialize(*object, root(), universe);
 	for (auto ref: serialize_references) {
 		ref->perform(universe);
 	}
@@ -18,6 +19,17 @@ void Archive::serialize(ObjectPtr<> object, IUniverse& universe) {
 
 ObjectPtr<> Archive::deserialize(IUniverse& universe) {
 	const ArchiveNode& n = root();
+	ObjectPtr<> ptr = deserialize_object(root(), universe);
+	
+	for (auto it: deserialize_references) {
+		it->perform(universe);
+	}
+	for (auto it: deserialize_signals) {
+		it->perform(universe);
+	}
+	
+	return ptr;
+	
 	if (!n.is_empty()) {
 		std::string cls;
 		if (!n["class"].get(cls)) {
@@ -65,7 +77,7 @@ ObjectPtr<> Archive::deserialize(IUniverse& universe) {
 		if (ptr->object_id() != id) {
 			std::cerr << "WARNING: Object '" << id << "' was renamed to '" << ptr->object_id() << "' because of a collision.\n";
 		}
-		type->deserialize(reinterpret_cast<byte*>(ptr.get()), n);
+		type->deserialize(reinterpret_cast<byte*>(ptr.get()), n, universe);
 		
 		
 		for (auto it: deserialize_references) {

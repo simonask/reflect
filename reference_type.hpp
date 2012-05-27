@@ -18,41 +18,26 @@ private:
 };
 
 template <typename T>
-struct ReferenceTypeImpl : ReferenceType {
+struct ReferenceTypeImpl : TypeFor<T, ReferenceType> {
 	typedef typename T::PointeeType PointeeType;
 	
-	ReferenceTypeImpl(std::string base_name) : ReferenceType(build_reference_type_name(base_name, get_type<PointeeType>())) {}
+	ReferenceTypeImpl(std::string base_name) : TypeFor<T, ReferenceType>(ReferenceType::build_reference_type_name(base_name, get_type<PointeeType>())) {}
 	
 	// ReferenceType interface
 	const Type* pointee_type() const { return get_type<PointeeType>(); }
 	
 	// Type interface
-	size_t size() const { return sizeof(T); }
-	void deserialize(byte* place, const ArchiveNode& node) const;
-	void serialize(const byte* place, ArchiveNode& node) const;
-	void construct(byte* place, IUniverse&) const;
-	void destruct(byte* place, IUniverse&) const;
+	void deserialize(T& ptr, const ArchiveNode& node, IUniverse&) const;
+	void serialize(const T& ptr, ArchiveNode& node, IUniverse&) const;
 };
 
 template <typename T>
-void ReferenceTypeImpl<T>::construct(byte* place, IUniverse&) const {
-	new(place) T;
-}
-
-template <typename T>
-void ReferenceTypeImpl<T>::destruct(byte* place, IUniverse&) const {
-	reinterpret_cast<T*>(place)->~T();
-}
-
-template <typename T>
-void ReferenceTypeImpl<T>::deserialize(byte* place, const ArchiveNode& node) const {
-	T& ptr = *reinterpret_cast<T*>(place);
+void ReferenceTypeImpl<T>::deserialize(T& ptr, const ArchiveNode& node, IUniverse&) const {
 	node.register_reference_for_deserialization(ptr);
 }
 
 template <typename T>
-void ReferenceTypeImpl<T>::serialize(const byte* place, ArchiveNode& node) const {
-	const T& ptr = *reinterpret_cast<const T*>(place);
+void ReferenceTypeImpl<T>::serialize(const T& ptr, ArchiveNode& node, IUniverse&) const {
 	node.register_reference_for_serialization(ptr);
 }
 

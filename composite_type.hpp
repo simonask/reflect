@@ -8,7 +8,7 @@
 #include <new>
 
 struct CompositeType : DerivedType {
-	CompositeType(std::string name, const StructTypeBase* base_type = nullptr) : base_type_(base_type), name_(std::move(name)), frozen_(false), size_(sizeof(Object)) {}
+	CompositeType(std::string name, const StructTypeBase* base_type = nullptr);
 	
 	const StructTypeBase* base_type() const;
 	void add_aspect(const DerivedType* aspect);
@@ -17,21 +17,23 @@ struct CompositeType : DerivedType {
 	// Type interface
 	void construct(byte* place, IUniverse&) const override;
 	void destruct(byte* place, IUniverse&) const override;
-	void deserialize(byte* place, const ArchiveNode& node) const override;
-	void serialize(const byte* place, ArchiveNode& node) const override;
+	void deserialize(byte* place, const ArchiveNode& node, IUniverse&) const override;
+	void serialize(const byte* place, ArchiveNode& node, IUniverse&) const override;
 	const std::string& name() const override { return name_; }
 	size_t size() const override { return size_; }
 	
 	// DerivedType interface
-	size_t num_elements() const override { return aspects_.size(); }
-	size_t offset_of_element(size_t idx) const override;
-	const Type* type_of_element(size_t idx) const override { return aspects_[idx]; }
+	size_t num_elements() const { return aspects_.size(); }
+	size_t offset_of_element(size_t idx) const;
+	const Type* type_of_element(size_t idx) const { return aspects_[idx]; }
 	
 	Object* cast(const DerivedType* to, Object* o) const override;
 	Object* find_instance_down(const DerivedType* of_type, Object* o, const DerivedType* avoid = nullptr) const;
-	Object* find_instance_up(const DerivedType* of_type, Object* o) const;
+	Object* find_instance_up(const DerivedType* of_type, Object* o, const DerivedType* avoid = nullptr) const;
 	Object* find_self_up(Object* o) const;
 private:
+	Object* cast(const DerivedType* to, Object* o, const DerivedType* avoid) const;
+	
 	const StructTypeBase* base_type_;
 	std::string name_;
 	Array<const DerivedType*> aspects_;

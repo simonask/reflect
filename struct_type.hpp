@@ -44,16 +44,14 @@ protected:
 };
 
 template <typename T>
-struct StructType : StructTypeBase {
-	StructType(const StructTypeBase* super, std::string name, std::string description) : StructTypeBase(super, std::move(name), std::move(description)), is_abstract_(false) {}
+struct StructType : TypeFor<T, StructTypeBase> {
+	StructType(const StructTypeBase* super, std::string name, std::string description) : TypeFor<T, StructTypeBase>(super, std::move(name), std::move(description)), is_abstract_(false) {}
 	
-	void construct(byte* place, IUniverse& universe) const override {
-		T* p = ::new(place) T;
+	void construct(byte* place, IUniverse& universe) const {
+		Object* p = ::new(place) T;
 		p->set_object_type__(this);
 		p->set_universe__(&universe);
 	}
-	void destruct(byte* place, IUniverse&) const override { reinterpret_cast<T*>(place)->~T(); }
-	size_t size() const override { return sizeof(T); }
 	
 	void set_properties(Array<AttributeForObject<T>*> properties) {
 		properties_ = std::move(properties);
@@ -62,7 +60,7 @@ struct StructType : StructTypeBase {
 		slots_ = std::move(slots);
 	}
 	
-	Array<const AttributeBase*> attributes() const override {
+	Array<const AttributeBase*> attributes() const {
 		Array<const AttributeBase*> result;
 		result.resize(properties_.size());
 		for (auto& it: properties_) {
@@ -73,15 +71,15 @@ struct StructType : StructTypeBase {
 	size_t num_slots() const { return slots_.size(); }
 	const SlotAttributeBase* slot_at(size_t idx) const { return dynamic_cast<const SlotAttributeBase*>(slots_[idx]); }
 	
-	size_t num_elements() const override { return properties_.size(); }
-	const Type* type_of_element(size_t idx) const override { return properties_[idx]->attribute_type(); }
-	size_t offset_of_element(size_t idx) const override { return 0; /* TODO */ }
+	size_t num_elements() const { return properties_.size(); }
+	const Type* type_of_element(size_t idx) const { return properties_[idx]->attribute_type(); }
+	size_t offset_of_element(size_t idx) const { return 0; /* TODO */ }
 	
-	void deserialize(byte* object, const ArchiveNode&) const override;
-	void serialize(const byte* object, ArchiveNode&) const override;
+	void deserialize(T& object, const ArchiveNode&, IUniverse&) const;
+	void serialize(const T& object, ArchiveNode&, IUniverse&) const;
 	
 	void set_abstract(bool b) { is_abstract_ = b; }
-	bool is_abstract() const override { return is_abstract_; }
+	bool is_abstract() const { return is_abstract_; }
 	
 	const SlotAttributeBase* get_slot_by_name(const std::string& name) const {
 		for (auto& it: slots_) {
@@ -97,26 +95,24 @@ protected:
 
 
 template <typename T>
-void StructType<T>::deserialize(byte* object, const ArchiveNode& node) const {
-	auto s = super();
-	if (s) s->deserialize(object, node);
+void StructType<T>::deserialize(T& object, const ArchiveNode& node, IUniverse& universe) const {
+	auto s = this->super();
+	if (s) s->deserialize(reinterpret_cast<byte*>(&object), node, universe);
 	
-	T* obj = reinterpret_cast<T*>(object);
 	for (auto& property: properties_) {
-		property->deserialize_attribute(obj, node[property->attribute_name()]);
+		property->deserialize_attribute(&object, node[property->attribute_name()], universe);
 	}
 }
 
 template <typename T>
-void StructType<T>::serialize(const byte* object, ArchiveNode& node) const {
-	auto s = super();
-	if (s) s->serialize(object, node);
+void StructType<T>::serialize(const T& object, ArchiveNode& node, IUniverse& universe) const {
+	auto s = this->super();
+	if (s) s->serialize(reinterpret_cast<const byte*>(&object), node, universe);
 	
-	const T* obj = reinterpret_cast<const T*>(object);
 	for (auto& property: properties_) {
-		property->serialize_attribute(obj, node[property->attribute_name()]);
+		property->serialize_attribute(&object, node[property->attribute_name()], universe);
 	}
-	node["class"] = name();
+	node["class"] = this->name();
 }
 
 template <typename T, typename R, typename... Args>

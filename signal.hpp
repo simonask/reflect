@@ -61,18 +61,16 @@ protected:
 };
 
 template <typename... Args>
-struct SignalType : SignalTypeBase {
-	void construct(byte* place, IUniverse&) const { new(place) Signal<Args...>; }
-	void destruct(byte* place, IUniverse&) const { ::destruct(reinterpret_cast<Signal<Args...>*>(place)); }
-	void deserialize(byte* place, const ArchiveNode&) const;
-	void serialize(const byte* place, ArchiveNode&) const;
+struct SignalType : TypeFor<Signal<Args...>, SignalTypeBase> {
+	void deserialize(Signal<Args...>& place, const ArchiveNode&, IUniverse&) const;
+	void serialize(const Signal<Args...>& place, ArchiveNode&, IUniverse&) const;
 	const std::string& name() const { return name_; }
 	size_t size() const { return sizeof(Signal<Args...>); }
 	const Array<const Type*>& signature() const { return signature_; }
 	
 	SignalType() {
 		build_signature<Args...>(signature_);
-		name_ = build_signal_name(signature_);
+		name_ = SignalTypeBase::build_signal_name(signature_);
 	}
 private:
 	std::string name_;
@@ -204,8 +202,7 @@ struct SlotAttribute : SlotForObject<T>, SlotWithSignature<Args...> {
 };
 
 template <typename... Args>
-void SignalType<Args...>::deserialize(byte* place, const ArchiveNode& node) const {
-	Signal<Args...>* signal = reinterpret_cast<Signal<Args...>*>(place);
+void SignalType<Args...>::deserialize(Signal<Args...>& signal, const ArchiveNode& node, IUniverse&) const {
 	if (node.is_array()) {
 		for (size_t i = 0; i < node.array_size(); ++i) {
 			const ArchiveNode& connection = node[i];
@@ -215,7 +212,7 @@ void SignalType<Args...>::deserialize(byte* place, const ArchiveNode& node) cons
 				std::string receiver;
 				std::string slot;
 				if (receiver_node.get(receiver) && slot_node.get(slot)) {
-					node.register_signal_for_deserialization(signal, receiver, slot);
+					node.register_signal_for_deserialization(&signal, receiver, slot);
 				} else {
 					std::cerr << "WARNING: Invalid signal connection.";
 				}
@@ -227,16 +224,15 @@ void SignalType<Args...>::deserialize(byte* place, const ArchiveNode& node) cons
 }
 
 template <typename... Args>
-void SignalType<Args...>::serialize(const byte* place, ArchiveNode& node) const {
-	const Signal<Args...>* signal = reinterpret_cast<const Signal<Args...>*>(place);
-	for (size_t i = 0; i < signal->num_connections(); ++i) {
-		const SlotInvoker<Args...>* invoker = signal->connection_at(i);
+void SignalType<Args...>::serialize(const Signal<Args...>& signal, ArchiveNode& node, IUniverse& universe) const {
+	for (size_t i = 0; i < signal.num_connections(); ++i) {
+		const SlotInvoker<Args...>* invoker = signal.connection_at(i);
 		ObjectPtr<Object> receiver = invoker->receiver();
 		const SlotAttributeBase* slot = invoker->slot();
 		if (receiver != nullptr && slot != nullptr) {
 			ArchiveNode& signal_connection = node.array_push();
 			ArchiveNode& receiver_node = signal_connection["receiver"];
-			get_type<ObjectPtr<Object>>()->serialize(reinterpret_cast<const byte*>(&receiver), receiver_node); // TODO! Prettier API…!
+			get_type<ObjectPtr<Object>>()->serialize(reinterpret_cast<const byte*>(&receiver), receiver_node, universe); // TODO! Prettier API…!
 			signal_connection["slot"] = slot->name();
 		}
 	}

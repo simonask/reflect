@@ -16,8 +16,8 @@ struct IUniverse;
 struct SlotAttributeBase;
 
 struct Type {
-	virtual void deserialize(byte* place, const ArchiveNode&) const = 0;
-	virtual void serialize(const byte* place, ArchiveNode&) const = 0;
+	virtual void deserialize(byte* place, const ArchiveNode&, IUniverse&) const = 0;
+	virtual void serialize(const byte* place, ArchiveNode&, IUniverse&) const = 0;
 	virtual void construct(byte* place, IUniverse&) const = 0;
 	virtual void destruct(byte* place, IUniverse&) const = 0;
 	
@@ -28,11 +28,38 @@ protected:
 	Type() {}
 };
 
+template <typename ObjectType, typename TypeType = Type>
+struct TypeFor : TypeType {
+	// Forwarding constructor.
+	template <typename... Args>
+	TypeFor(Args&&... args) : TypeType(std::forward<Args>(args)...) {}
+	
+	// Override interface.
+	virtual void deserialize(ObjectType& place, const ArchiveNode&, IUniverse&) const = 0;
+	virtual void serialize(const ObjectType& place, ArchiveNode&, IUniverse&) const = 0;
+
+
+	// Do not override.
+	void deserialize(byte* place, const ArchiveNode& node, IUniverse& universe) const {
+		this->deserialize(*reinterpret_cast<ObjectType*>(place), node, universe);
+	}
+	void serialize(const byte* place, ArchiveNode& node, IUniverse& universe) const {
+		this->serialize(*reinterpret_cast<const ObjectType*>(place), node, universe);
+	}
+	void construct(byte* place, IUniverse&) const {
+		::new(place) ObjectType;
+	}
+	void destruct(byte* place, IUniverse&) const {
+		reinterpret_cast<ObjectType*>(place)->~ObjectType();
+	}
+	size_t size() const { return sizeof(ObjectType); }
+};
+
 struct VoidType : Type {
 	static const VoidType* get();
 	
-	void deserialize(byte* place, const ArchiveNode&) const override {}
-	void serialize(const byte*, ArchiveNode&) const override {}
+	void deserialize(byte* place, const ArchiveNode&, IUniverse&) const override {}
+	void serialize(const byte*, ArchiveNode&, IUniverse&) const override {}
 	virtual void construct(byte*, IUniverse&) const override {}
 	virtual void destruct(byte*, IUniverse&) const override {}
 	static const std::string Name;
@@ -72,8 +99,8 @@ struct EnumType : SimpleType {
 	bool name_for_value(ssize_t value, std::string& out_name) const;
 	bool value_for_name(const std::string& name, ssize_t& out_value) const;
 	
-	void deserialize(byte*, const ArchiveNode&) const override;
-	void serialize(const byte*, ArchiveNode&) const override;
+	void deserialize(byte*, const ArchiveNode&, IUniverse&) const override;
+	void serialize(const byte*, ArchiveNode&, IUniverse&) const override;
 	void* cast(const SimpleType* to, void* o) const;
 private:
 	Array<std::tuple<std::string, ssize_t, std::string>> entries_;
@@ -83,8 +110,8 @@ private:
 
 struct IntegerType : SimpleType {
 	IntegerType(std::string name, size_t width, bool is_signed = true) : SimpleType(name, width, width, false, is_signed) {}
-	void deserialize(byte*, const ArchiveNode&) const override;
-	void serialize(const byte*, ArchiveNode&) const override;
+	void deserialize(byte*, const ArchiveNode&, IUniverse&) const override;
+	void serialize(const byte*, ArchiveNode&, IUniverse&) const override;
 	void* cast(const SimpleType* to, void* o) const;
 	size_t max() const;
 	ssize_t min() const;
@@ -92,34 +119,29 @@ struct IntegerType : SimpleType {
 
 struct FloatType : SimpleType {
 	FloatType(std::string name, size_t width) : SimpleType(name, width, width, true, true) {}
-	void deserialize(byte*, const ArchiveNode& node) const override;
-	void serialize(const byte*, ArchiveNode&) const override;
+	void deserialize(byte*, const ArchiveNode& node, IUniverse&) const override;
+	void serialize(const byte*, ArchiveNode&, IUniverse&) const override;
 	void* cast(const SimpleType* to, void* o) const;
 };
 
 struct VectorType : SimpleType {
 	VectorType(std::string name, size_t width, size_t component_width, bool is_float, bool is_signed = true) : SimpleType(name, width, component_width, is_float, is_signed) {}
-	void deserialize(byte*, const ArchiveNode&) const override;
-	void serialize(const byte*, ArchiveNode&) const override;
+	void deserialize(byte*, const ArchiveNode&, IUniverse&) const override;
+	void serialize(const byte*, ArchiveNode&, IUniverse&) const override;
 	void* cast(const SimpleType* to, void* o) const;
 };
 
-struct StringType : Type {
+struct StringType : TypeFor<std::string> {
 	static const StringType* get();
 	
-	void deserialize(byte* place, const ArchiveNode&) const override;
-	void serialize(const byte* place, ArchiveNode&) const override;
-	void construct(byte* place, IUniverse&) const override { new(place) std::string; }
-	void destruct(byte* place, IUniverse&) const override { ::destruct(reinterpret_cast<std::string*>(place)); }
+	void deserialize(std::string& place, const ArchiveNode&, IUniverse&) const override;
+	void serialize(const std::string& place, ArchiveNode&, IUniverse&) const override;
 	
 	const std::string& name() const override;
 	size_t size() const override { return sizeof(std::string); }
 };
 
 struct DerivedType : Type {
-	virtual size_t num_elements() const = 0;
-	virtual const Type* type_of_element(size_t idx) const = 0;
-	virtual size_t offset_of_element(size_t idx) const = 0;
 	virtual Object* cast(const DerivedType* to, Object* o) const = 0;
 	virtual const SlotAttributeBase* get_slot_by_name(const std::string& name) const { return nullptr; }
 };

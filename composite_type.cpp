@@ -1,6 +1,10 @@
 #include "composite_type.hpp"
 #include "struct_type.hpp"
 
+CompositeType::CompositeType(std::string name, const StructTypeBase* base_type) : base_type_(base_type), name_(std::move(name)), frozen_(false) {
+	size_ = this->base_type()->size();
+}
+
 void CompositeType::add_aspect(const DerivedType* aspect) {
 	ASSERT(!frozen_);
 	ASSERT(!aspect->is_abstract());
@@ -13,55 +17,56 @@ const StructTypeBase* CompositeType::base_type() const {
 }
 
 Object* CompositeType::cast(const DerivedType* to, Object* o) const {
-	Object* result = find_instance_down(to, o);
+	return cast(to, o, nullptr);
+}
+
+Object* CompositeType::cast(const DerivedType* to, Object* o, const DerivedType* avoid) const {
+	if (to == this) return o;
+	
+	// Check base type and aspects
+	Object* result = find_instance_down(to, o, avoid);
 	if (result != nullptr) return result;
-	return find_instance_up(to, o);
+	
+	// Then check parent objects (that have this object as an aspect)
+	return find_instance_up(to, o, this);
 }
 
 Object* CompositeType::find_instance_down(const DerivedType* to, Object* o, const DerivedType* avoid) const {
-	// Breadth-first search
+	// First check the base type
+	Object* result = base_type()->cast(to, o);
+	if (result != nullptr) return result;
+	
+	// Then do breadth-first search of aspects
 	size_t offset = base_type()->size();
-	byte* memory = reinterpret_cast<byte*>(o);
-	for (auto& it: aspects_) {
-		if (it == to && it != avoid) {
-			return reinterpret_cast<Object*>(memory + offset);
-		}
-		offset += it->size();
-	}
-	offset = base_type()->size();
-	for (auto& it: aspects_) {
-		const CompositeType* aspect = dynamic_cast<const CompositeType*>(it);
-		if (aspect != nullptr && aspect != avoid) {
-			Object* result = aspect->find_instance_down(to, reinterpret_cast<Object*>(memory + offset));
+	for (auto& aspect: aspects_) {
+		Object* aspect_object = reinterpret_cast<Object*>(reinterpret_cast<byte*>(o) + offset);
+		
+		const CompositeType* composite_aspect = dynamic_cast<const CompositeType*>(aspect);
+		if (composite_aspect != nullptr) {
+			if (composite_aspect != avoid) {
+				Object* result = composite_aspect->find_instance_down(to, aspect_object, nullptr);
+				if (result != nullptr) return result;
+			}
+		} else {
+			Object* result = aspect->cast(to, aspect_object);
 			if (result != nullptr) return result;
 		}
-		offset += it->size();
+		offset += aspect->size();
 	}
-	return nullptr;
+	
+	return nullptr; // not found
 }
 
-Object* CompositeType::find_instance_up(const DerivedType* to, Object* object) const {
-	Object* o = object;
-	ssize_t offset = o->object_offset();
-	byte* memory = reinterpret_cast<byte*>(o);
-	const DerivedType* come_from = this;
-	while (true) {
-		if (o->object_type() == to) {
-			return o;
+Object* CompositeType::find_instance_up(const DerivedType* to, Object* object, const DerivedType* avoid) const {
+	Object* o = object->find_parent();
+	if (o != nullptr) {
+		const DerivedType* t = o->object_type();
+		const CompositeType* ct = dynamic_cast<const CompositeType*>(t);
+		if (ct != nullptr) {
+			return ct->cast(to, o, this);
 		} else {
-			const CompositeType* comp = dynamic_cast<const CompositeType*>(o->object_type());
-			if (comp != nullptr) {
-				Object* r = comp->find_instance_down(to, o, come_from);
-				if (r != nullptr) {
-					return r;
-				}
-			}
+			return t->cast(to, o);
 		}
-		if (offset == 0) break;
-		memory -= offset;
-		o = reinterpret_cast<Object*>(memory);
-		come_from = o->object_type();
-		offset = o->object_offset();
 	}
 	return nullptr;
 }
@@ -93,6 +98,7 @@ void CompositeType::construct(byte* place, IUniverse& universe) const {
 		subobject->set_object_id(aspect->name()); // might be renamed later by deserialization
 		offset += aspect->size();
 	}
+	ASSERT(offset == size_);
 }
 
 void CompositeType::destruct(byte* place, IUniverse& universe) const {
@@ -103,38 +109,39 @@ void CompositeType::destruct(byte* place, IUniverse& universe) const {
 		offset += aspect->size();
 	}
 	base_type()->destruct(place, universe);
+	ASSERT(offset == size_);
 }
 
-void CompositeType::deserialize(byte* place, const ArchiveNode& node) const {
+void CompositeType::deserialize(byte* place, const ArchiveNode& node, IUniverse& universe) const {
 	ASSERT(frozen_);
-	base_type()->deserialize(place, node);
+	base_type()->deserialize(place, node, universe);
 	
 	const ArchiveNode& aspect_array = node["aspects"];
 	if (aspect_array.is_array()) {
 		size_t offset = base_type()->size();
-		byte* p = place;
 		size_t sz = aspect_array.array_size();
 		for (size_t i = 0; i < aspect_array.array_size(); ++i) {
 			const ArchiveNode& aspect_node = aspect_array[i];
-			aspects_[i]->deserialize(p + offset, aspect_node);
-			Object* subobject = reinterpret_cast<Object*>(p + offset);
+			aspects_[i]->deserialize(place + offset, aspect_node, universe);
+			Object* subobject = reinterpret_cast<Object*>(place + offset);
 			subobject->set_object_offset__(offset);
 			offset += aspects_[i]->size();
 		}
+		ASSERT(offset == size_);
 	}
 }
 
-void CompositeType::serialize(const byte* place, ArchiveNode& node) const {
+void CompositeType::serialize(const byte* place, ArchiveNode& node, IUniverse& universe) const {
 	ASSERT(frozen_);
-	base_type()->serialize(place, node);
+	base_type()->serialize(place, node, universe);
 	node["class"] = base_type()->name();
 	
 	size_t offset = base_type()->size();
-	const byte* p = place;
 	ArchiveNode& aspect_array = node["aspects"];
 	for (auto aspect: aspects_) {
 		ArchiveNode& aspect_node = aspect_array.array_push();
-		aspect->serialize(p + offset, aspect_node);
+		aspect->serialize(place + offset, aspect_node, universe);
 		offset += aspect->size();
 	}
+	ASSERT(offset == size_);
 }
