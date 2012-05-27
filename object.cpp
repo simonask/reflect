@@ -2,20 +2,38 @@
 #include "reflect.hpp"
 #include "universe.hpp"
 
+Object* Object::find_parent() {
+	Object* object = this;
+	if (object->offset_ != 0) {
+		ssize_t offs = object->offset_;
+		return reinterpret_cast<Object*>(reinterpret_cast<byte*>(object) - offs);
+	}
+	return nullptr;
+}
+
+const Object* Object::find_parent() const {
+	const Object* object = this;
+	if (object->offset_ != 0) {
+		ssize_t offs = object->offset_;
+		return reinterpret_cast<const Object*>(reinterpret_cast<const byte*>(object) - offs);
+	}
+	return nullptr;
+}
+
 Object* Object::find_topmost_object() {
 	Object* object = this;
-	while (object->offset_ != 0) {
-		ssize_t offs = object->offset_;
-		object = reinterpret_cast<Object*>(reinterpret_cast<byte*>(object) - offs);
+	Object* p;
+	while ((p = object->find_parent()) != nullptr) {
+		object = p;
 	}
 	return object;
 }
 
 const Object* Object::find_topmost_object() const {
 	const Object* object = this;
-	while (object->offset_ != 0) {
-		ssize_t offs = object->offset_;
-		object = reinterpret_cast<const Object*>(reinterpret_cast<const byte*>(object) - offs);
+	const Object* p;
+	while ((p = object->find_parent()) != nullptr) {
+		object = p;
 	}
 	return object;
 }

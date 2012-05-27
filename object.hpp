@@ -24,6 +24,8 @@ struct Object {
 	Object() : type_(nullptr), offset_(0), universe_(nullptr) {}
 	virtual ~Object() {}
 	
+	Object* find_parent();
+	const Object* find_parent() const;
 	Object* find_topmost_object();
 	const Object* find_topmost_object() const;
 	
