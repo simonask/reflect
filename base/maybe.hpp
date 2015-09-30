@@ -259,14 +259,14 @@ struct MaybeIfImpl {
 
 
 template <typename M, typename Functor>
-auto maybe_if(M& m, Functor function)
+auto maybe_if(M&& m, Functor function)
 -> typename MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::ResultType
 {
 	return MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::maybe_if(m, function);
 }
 
 template <typename M, typename Functor>
-auto maybe_if(M& m, Functor function)
+auto maybe_if(M&& m, Functor function)
 -> typename MaybeIfImpl<M, decltype(function(*m))>::ResultType
 {
 	return MaybeIfImpl<M, decltype(function(*m))>::maybe_if(m, function);

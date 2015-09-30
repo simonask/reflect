@@ -1,4 +1,4 @@
-#include "maybe.hpp"
+#include "../base/maybe.hpp"
 
 #if defined(__has_feature) && __has_feature(cxx_lambdas)
 #define HAS_LAMBDAS 1
@@ -271,6 +271,15 @@ void test_maybe_if() {
 		m = maybe_if(p, [](int it) { return it; });
 		ASSERT(!m);
 	}
+
+	// Test rvalue Maybe<>
+	{
+		int n = 123;
+		int observed = 0;
+		auto m = maybe_if(Maybe<int>(123), [&](int it) { observed = it; });
+		ASSERT(m);
+		ASSERT(observed == 123);
+	}
 }
 
 int main (int argc, char const *argv[])
@@ -375,5 +384,6 @@ int main (int argc, char const *argv[])
 	
 	test_maybe_if();
 	
+	printf("All tests passed\n");
 	return 0;
 }
