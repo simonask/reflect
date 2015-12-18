@@ -21,16 +21,16 @@ public:
 	Maybe<T>& operator=(Maybe<T>&& other);
 	Maybe<T>& operator=(const T& other);
 	Maybe<T>& operator=(T&& other);
-	
+
 	void clear();
-	
+
 	bool is_set() const { return *is_set_ptr() != 0; }
 	explicit operator bool() const { return is_set(); }
-	
+
 	// For use with decltype(...)
 	T& infer_value_type() { ASSERT(false); return *((T*)nullptr); }
 	const T& infer_value_type() const { ASSERT(false); return *((T*)nullptr); }
-	
+
 	template <typename Functor>
 	bool otherwise(Functor functor) {
 		bool b = is_set();
@@ -43,7 +43,7 @@ public:
 		if (!b) functor();
 		return b;
 	}
-	
+
 	// Same as 'maybe_if', but with FP terminology a la Scala.
 	template <typename Functor>
 	auto map(Functor functor)
@@ -57,30 +57,30 @@ public:
 	}
 private:
 	template <typename M, typename ReturnType> friend struct MaybeIfImpl;
-	
+
 	const T* get() const { return is_set() ? memory() : nullptr; }
 	T* get() { return is_set() ? memory() : nullptr; }
 	T* operator->() { return get(); }
 	const T* operator->() const { return get(); }
 	T& operator*() { return *get(); }
 	const T& operator*() const { return *get(); }
-	
+
 	static const size_t StorageSize = sizeof(T) + 1; // T + is_set byte
 	static const size_t Alignment = std::alignment_of<T>::value;
 	typedef typename std::aligned_storage<StorageSize, Alignment>::type StorageType;
-	
+
 	StorageType memory_;
-	
+
 	const T* memory() const { return reinterpret_cast<const T*>(&memory_); }
 	T* memory() { return reinterpret_cast<T*>(&memory_); }
 	const byte* is_set_ptr() const { return reinterpret_cast<const byte*>(&memory_) + sizeof(T); }
 	byte* is_set_ptr() { return reinterpret_cast<byte*>(&memory_) + sizeof(T); }
-	
+
 	void set(bool b) {
 		if (b) *is_set_ptr() = 1;
 		else   *is_set_ptr() = 0;
 	}
-	
+
 	template <typename U = T>
 	typename std::enable_if<IsCopyConstructibleNonRef<U>::Value && IsCopyAssignableNonRef<U>::Value>::type
 	assign(const T& by_copy) {
@@ -91,7 +91,7 @@ private:
 			set(true);
 		}
 	}
-	
+
 	template <typename U = T>
 	typename std::enable_if<IsCopyConstructibleNonRef<U>::Value && !IsCopyAssignableNonRef<U>::Value>::type
 	assign(const T& by_copy) {
@@ -101,7 +101,7 @@ private:
 		::new(memory()) T(by_copy);
 		set(true);
 	}
-	
+
 	template <typename U = T>
 	typename std::enable_if<!IsCopyConstructibleNonRef<U>::Value && IsCopyAssignableNonRef<U>::Value>::type
 	assign(const T& by_copy) {
@@ -111,7 +111,7 @@ private:
 		}
 		*memory() = by_copy;
 	}
-	
+
 	template <typename U = T>
 	typename std::enable_if<IsMoveConstructibleNonRef<U>::Value && IsMoveAssignableNonRef<U>::Value>::type
 	assign(T&& by_move) {
@@ -122,7 +122,7 @@ private:
 			set(true);
 		}
 	}
-	
+
 	template <typename U = T>
 	typename std::enable_if<IsMoveConstructibleNonRef<U>::Value && !IsMoveAssignableNonRef<U>::Value>::type
 	assign(T&& by_move) {
@@ -132,7 +132,7 @@ private:
 		::new(memory()) T(std::move(by_move));
 		set(true);
 	}
-	
+
 	template <typename U = T>
 	typename std::enable_if<!IsMoveConstructibleNonRef<U>::Value && IsMoveAssignableNonRef<U>::Value>::type
 	assign(T&& by_move) {
@@ -222,13 +222,13 @@ struct RemoveMaybe {
 struct BooleanHolder {
 	BooleanHolder(bool value) : value_(value) {}
 	bool value_;
-	
+
 	template <typename Functor>
 	bool otherwise(Functor functor) {
 		if (!value_) functor();
 		return value_;
 	}
-	
+
 	operator bool() const { return value_; }
 };
 
@@ -238,9 +238,15 @@ struct MaybeIfImpl;
 template <typename M>
 struct MaybeIfImpl<M, void> {
 	typedef BooleanHolder ResultType;
-	
+
 	template <typename Functor>
 	static BooleanHolder maybe_if(M& m, Functor function) {
+		if (m) { function(*m); return true; }
+		return false;
+	}
+
+	template <typename Functor>
+	static BooleanHolder maybe_if(const M& m, Functor function) {
 		if (m) { function(*m); return true; }
 		return false;
 	}
@@ -249,9 +255,15 @@ struct MaybeIfImpl<M, void> {
 template <typename M, typename ReturnType>
 struct MaybeIfImpl {
 	typedef Maybe<typename RemoveMaybe<ReturnType>::Type> ResultType;
-	
+
 	template <typename Functor>
 	static ResultType maybe_if(M& m, Functor function) {
+		if (m) return function(*m);
+		return ResultType();
+	}
+
+	template <typename Functor>
+	static ResultType maybe_if(const M& m, Functor function) {
 		if (m) return function(*m);
 		return ResultType();
 	}
@@ -267,6 +279,20 @@ auto maybe_if(M& m, Functor function)
 
 template <typename M, typename Functor>
 auto maybe_if(M& m, Functor function)
+-> typename MaybeIfImpl<M, decltype(function(*m))>::ResultType
+{
+	return MaybeIfImpl<M, decltype(function(*m))>::maybe_if(m, function);
+}
+
+template <typename M, typename Functor>
+auto maybe_if(const M& m, Functor function)
+-> typename MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::ResultType
+{
+	return MaybeIfImpl<M, decltype(function(m.infer_value_type()))>::maybe_if(m, function);
+}
+
+template <typename M, typename Functor>
+auto maybe_if(const M& m, Functor function)
 -> typename MaybeIfImpl<M, decltype(function(*m))>::ResultType
 {
 	return MaybeIfImpl<M, decltype(function(*m))>::maybe_if(m, function);
